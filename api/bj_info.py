@@ -32,26 +32,59 @@ class handler(BaseHTTPRequestHandler):
             vod_url = f"https://bj.afreecatv.com/{bj_id}/vods"
 
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': 'https://www.afreecatv.com/'
             }
 
             # 3. 데이터 수집 (메인 페이지)
             res_station = requests.get(station_url, headers=headers, timeout=5)
-            soup_station = BeautifulSoup(res_station.text, 'html.parser')
-
-            # 닉네임
-            nick_tag = soup_station.select_one('meta[property="og:title"]')
-            nickname = nick_tag['content'] if nick_tag else bj_id
+            # 인코딩 강제 설정 (한글 깨짐 방지)
+            res_station.encoding = 'utf-8'
             
-            # 프로필 이미지
-            img_tag = soup_station.select_one('meta[property="og:image"]')
-            profile_img = img_tag['content'] if img_tag else ""
+            soup_station = BeautifulSoup(res_station.text, 'html.parser')
+            html_text = res_station.text
 
-            # 방송 중 여부 (on 클래스 확인)
-            # PC 페이지 기준: <button type="button" class="btn_broadcast on">
+            # 닉네임 파싱 (우선순위: og:title -> title 태그 -> 정규식)
+            nick_tag = soup_station.select_one('meta[property="og:title"]')
+            if nick_tag and nick_tag.get('content'):
+                nickname = nick_tag['content']
+            else:
+                # 백업: title 태그 사용 ("닉네임 - SOOP" 형식 제거)
+                title_tag = soup_station.select_one('title')
+                if title_tag:
+                    nickname = title_tag.get_text().split(' |')[0].split(' -')[0].strip()
+                else:
+                    nickname = bj_id
+
+            # 프로필 이미지 파싱 (우선순위: og:image -> 본문 내 프로필 이미지 -> 정규식)
+            img_tag = soup_station.select_one('meta[property="og:image"]')
+            if img_tag and img_tag.get('content'):
+                profile_img = img_tag['content']
+            else:
+                # 백업: 본문 내 프로필 이미지 클래스 시도
+                profile_elem = soup_station.select_one('.st_profile img')
+                if profile_elem:
+                    profile_img = profile_elem.get('src')
+                else:
+                    # 백업: 정규식으로 thumb 패턴 찾기
+                    match = re.search(r'http[s]?://profile\.img\.afreecatv\.com/[^"\']+', html_text)
+                    profile_img = match.group(0) if match else ""
+
+            # 방송 중 여부 파싱
+            # 1. HTML 클래스로 확인
             is_live = False
-            if "class=\"btn_broadcast on\"" in res_station.text or "player_live" in res_station.text:
+            if "class=\"btn_broadcast on\"" in html_text or "player_live" in html_text:
                 is_live = True
+            
+            # 2. 백업: 자바스크립트 변수 확인 (아프리카TV는 스크립트 변수로 상태를 가짐)
+            # broad_no(방송번호)가 0이 아니거나, is_broad 등이 true인 경우
+            if not is_live:
+                if re.search(r'"broad_no"\s*:\s*"?[1-9]', html_text): # broad_no가 0이 아님
+                    is_live = True
+                elif re.search(r"broad_no\s*=\s*['\"]?[1-9]", html_text):
+                    is_live = True
 
             # 4. 데이터 수집 (VOD 페이지) - PC 페이지 활용 (모바일 mw 도메인 접속 불가 대응)
             res_vod = requests.get(vod_url, headers=headers, timeout=5)
