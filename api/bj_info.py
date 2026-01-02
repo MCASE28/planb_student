@@ -33,111 +33,68 @@ class handler(BaseHTTPRequestHandler):
 
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Referer': 'https://www.afreecatv.com/'
+                'Referer': 'https://bj.afreecatv.com/'
             }
 
-            # 3. 데이터 수집 (메인 페이지)
-            res_station = requests.get(station_url, headers=headers, timeout=5)
-            # 인코딩 강제 설정 (한글 깨짐 방지)
-            res_station.encoding = 'utf-8'
+            # 3. 데이터 수집 (내부 API 사용)
+            # 방송국 정보 (닉네임, 프사, 생방송 여부)
+            api_station_url = f"https://bjapi.afreecatv.com/api/{bj_id}/station"
+            res_station = requests.get(api_station_url, headers=headers, timeout=5)
+            data_station = res_station.json()
+
+            # 기본 정보 파싱
+            station_info = data_station.get('station', {})
+            nickname = station_info.get('user_nick', bj_id)
             
-            soup_station = BeautifulSoup(res_station.text, 'html.parser')
-            html_text = res_station.text
+            profile_img = data_station.get('profile_image', '')
+            if profile_img and profile_img.startswith('//'):
+                profile_img = 'https:' + profile_img
 
-            # 닉네임 파싱 (우선순위: og:title -> title 태그 -> 정규식)
-            nick_tag = soup_station.select_one('meta[property="og:title"]')
-            if nick_tag and nick_tag.get('content'):
-                nickname = nick_tag['content']
-            else:
-                # 백업: title 태그 사용 ("닉네임 - SOOP" 형식 제거)
-                title_tag = soup_station.select_one('title')
-                if title_tag:
-                    nickname = title_tag.get_text().split(' |')[0].split(' -')[0].strip()
-                else:
-                    nickname = bj_id
+            # 방송 중 여부 ('broad' 필드가 null이면 오프라인, 객체면 방송 중)
+            is_live = data_station.get('broad') is not None
 
-            # 프로필 이미지 파싱 (우선순위: og:image -> 본문 내 프로필 이미지 -> 정규식)
-            img_tag = soup_station.select_one('meta[property="og:image"]')
-            if img_tag and img_tag.get('content'):
-                profile_img = img_tag['content']
-            else:
-                # 백업: 본문 내 프로필 이미지 클래스 시도
-                profile_elem = soup_station.select_one('.st_profile img')
-                if profile_elem:
-                    profile_img = profile_elem.get('src')
-                else:
-                    # 백업: 정규식으로 thumb 패턴 찾기
-                    match = re.search(r'http[s]?://profile\.img\.afreecatv\.com/[^"\']+', html_text)
-                    profile_img = match.group(0) if match else ""
-
-            # 방송 중 여부 파싱
-            # 1. HTML 클래스로 확인
-            is_live = False
-            if "class=\"btn_broadcast on\"" in html_text or "player_live" in html_text:
-                is_live = True
-            
-            # 2. 백업: 자바스크립트 변수 확인 (아프리카TV는 스크립트 변수로 상태를 가짐)
-            # broad_no(방송번호)가 0이 아니거나, is_broad 등이 true인 경우
-            if not is_live:
-                if re.search(r'"broad_no"\s*:\s*"?[1-9]', html_text): # broad_no가 0이 아님
-                    is_live = True
-                elif re.search(r"broad_no\s*=\s*['\"]?[1-9]", html_text):
-                    is_live = True
-
-            # 4. 데이터 수집 (VOD 페이지) - PC 페이지 활용 (모바일 mw 도메인 접속 불가 대응)
-            res_vod = requests.get(vod_url, headers=headers, timeout=5)
-            soup_vod = BeautifulSoup(res_vod.text, 'html.parser')
+            # 4. 데이터 수집 (VOD API 사용)
+            api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods"
+            res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
+            data_vod = res_vod.json()
             
             vod_list = []
-            
-            # PC 페이지 구조가 다양할 수 있으므로 범용적인 탐색 시도
-            # VOD 리스트는 보통 li 태그로 구성됨
-            items = soup_vod.select('li')
+            if 'data' in data_vod:
+                for item in data_vod['data'][:10]: # 최근 10개
+                    try:
+                        title_no = item.get('title_no')
+                        if not title_no: continue
 
-            for item in items:
-                try:
-                    # 제목: .tit, .title, .subject 클래스 또는 dt 태그 내부
-                    title_tag = item.select_one('.tit, .title, .subject, dt a')
-                    # 링크: 썸네일 링크(.thumb) 또는 일반 링크
-                    link_tag = item.select_one('a.thumb, a.box_link')
-                    if not link_tag:
-                        link_tag = item.select_one('a')
-                    # 썸네일 이미지
-                    thumb_tag = item.select_one('img')
-                    # 시간 및 날짜
-                    time_tag = item.select_one('.time, .runtime, .running_time')
-                    date_tag = item.select_one('.date, .reg_date, .day')
+                        # 썸네일 처리
+                        thumb = item.get('ucc', {}).get('thumb', '')
+                        if thumb and thumb.startswith('//'):
+                            thumb = 'https:' + thumb
 
-                    # 필수 요소(제목, 링크, 이미지)가 모두 있어야 VOD 항목으로 인정
-                    if title_tag and link_tag and thumb_tag:
-                        link = link_tag.get('href', '')
-                        # 자바스크립트 링크나 앵커 링크 제외
-                        if not link or 'javascript' in link or link == '#':
-                            continue
-                            
-                        if not link.startswith('http'):
-                            link = f"https://bj.afreecatv.com{link}"
-
-                        # 이미지 소스 (src 또는 data-original 등)
-                        thumb_src = thumb_tag.get('src', '')
+                        # 시간 처리 (초 단위 -> HH:MM:SS)
+                        duration_sec = item.get('ucc', {}).get('total_file_duration', 0)
+                        # API가 주는 duration 단위가 초가 아닐 수 있음 (보통 밀리초거나 그냥 초)
+                        # 테스트 결과: 12139600 -> 매우 큼. 밀리초일 가능성 높음? 아니면 그냥 초?
+                        # 확인: 12139600 / 1000 = 12139초 = 약 3시간. (밀리초가 맞는 듯 보임)
+                        # 하지만 31053400 같은 값도 있음. 일단 초 단위로 변환
+                        # 아프리카 VOD duration은 보통 '초' 단위인데 값이 크다면 확인 필요.
+                        # -> API 응답 예시: 12139600. 이건 3시간 방송이면 10800초여야 함.
+                        # -> 따라서 12139600 은 밀리초(ms) 단위일 가능성이 매우 높음.
                         
-                        # 이미지가 없거나 아이콘인 경우 스킵 (선택사항)
-                        if not thumb_src: continue
+                        seconds = int(duration_sec) // 1000
+                        h = seconds // 3600
+                        m = (seconds % 3600) // 60
+                        s = seconds % 60
+                        duration_str = f"{h:02}:{m:02}:{s:02}" if h > 0 else f"{m:02}:{s:02}"
 
                         vod_list.append({
-                            'title': title_tag.get_text(strip=True),
-                            'link': link,
-                            'thumb': thumb_src,
-                            'duration': time_tag.get_text(strip=True) if time_tag else "",
-                            'date': date_tag.get_text(strip=True) if date_tag else ""
+                            'title': item.get('title_name', ''),
+                            'link': f"https://vod.afreecatv.com/player/{title_no}",
+                            'thumb': thumb,
+                            'duration': duration_str,
+                            'date': item.get('reg_date', '').split(' ')[0] # 2025-12-30 형식
                         })
-                        
-                        if len(vod_list) >= 8: # 최대 8개까지만
-                            break
-                except Exception:
-                    continue
+                    except Exception:
+                        continue
 
             # 5. 결과 반환
             result = {
