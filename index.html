@@ -47,7 +47,7 @@
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
         .modal-content { 
             background: var(--card-bg); margin: 3vh auto; padding: 30px; 
-            width: 95%; max-width: 1300px; height: 90vh; /* 너비 약간 더 확장 */
+            width: 95%; max-width: 1300px; height: 90vh; 
             border-radius: 20px; position: relative; display: flex; flex-direction: column; 
             box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
             overflow: hidden; 
@@ -64,8 +64,8 @@
 
         /* Modal Body Grid (Left: Calendar, Right: Graph) */
         .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
-        .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; } /* 1:1 비율 */
-        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; } /* 1:1 비율 */
+        .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; }
 
         /* Calendar Styles */
         .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -84,13 +84,14 @@
         .cal-day.empty { background: transparent; }
         .cal-day.has-vod { background: rgba(16, 185, 129, 0.2); cursor: pointer; border: 1px solid rgba(16, 185, 129, 0.4); }
         .cal-day.has-vod:hover { background: rgba(16, 185, 129, 0.3); }
+        .cal-day.multi-vod { border-color: #3b82f6; } /* 하루 2개 이상일 때 테두리 강조 */
         
         .day-num { font-size: 0.9rem; margin-bottom: 5px; width: 100%; text-align: left; padding-left: 5px; font-weight: bold; }
         .day-time { font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-top: auto; margin-bottom: auto; }
 
         /* Graph Container */
         .chart-container { background: #0f172a; padding: 20px; border-radius: 16px; flex: 1; display: flex; flex-direction: column; margin-bottom: 20px; }
-        .chart-wrapper { flex: 1; position: relative; width: 100%; min-height: 200px; } /* 높이 확장 */
+        .chart-wrapper { flex: 1; position: relative; width: 100%; min-height: 320px; } /* 높이 80%로 축소 */
         h3 { margin-top: 0; font-size: 1.1rem; color: var(--text-sub); margin-bottom: 20px; }
 
         footer { text-align: center; margin-top: 50px; color: var(--text-sub); font-size: 0.8rem; }
@@ -104,7 +105,7 @@
         @media (max-width: 900px) {
             .modal-body { flex-direction: column; overflow-y: auto; }
             .modal-content { height: auto; max-height: 90vh; }
-            .chart-wrapper { min-height: 300px; }
+            .chart-wrapper { min-height: 250px; }
         }
     </style>
 </head>
@@ -223,6 +224,7 @@
         if (!data) return;
 
         currentStreamerId = id;
+        const now = new Date();
         currentYear = 2026; 
         currentMonth = 1; 
 
@@ -274,7 +276,8 @@
         let newYear = newDate.getFullYear();
         let newMonth = newDate.getMonth() + 1;
 
-        if (newYear < 2025 || (newYear === 2025 && newMonth < 12)) return;
+        // 범위 제한: 2025.10 ~ 2026.02
+        if (newYear < 2025 || (newYear === 2025 && newMonth < 10)) return;
         if (newYear > 2026 || (newYear === 2026 && newMonth > 2)) return;
 
         currentYear = newYear;
@@ -338,20 +341,26 @@
 
             if (vods && vods.length > 0) {
                 className += " has-vod";
-                const mainVod = vods[0]; 
-                
-                const parts = mainVod.duration.split(':').map(Number);
-                let timeText = "";
-                let sec = mainVod.duration_sec || 0;
+                if (vods.length > 1) className += " multi-vod"; // 2개 이상 표시용 클래스
+
+                // 총 방송 시간 합산
+                let totalSec = 0;
+                vods.forEach(v => totalSec += (v.duration_sec || 0));
+
+                const mainVod = vods[0]; // 이동은 최신 VOD로
 
                 currentWeekStats.count += vods.length;
-                currentWeekStats.totalSec += sec;
+                currentWeekStats.totalSec += totalSec;
                 
                 updateWeekStat(currentWeekStats);
 
-                if (parts.length === 3 && parts[0] > 0) timeText = `${parts[0]}시간`;
-                else if (parts.length === 2) timeText = `${parts[0]}분`;
-                else timeText = mainVod.duration; 
+                // 합산 시간 표시
+                const h = Math.floor(totalSec / 3600);
+                const m = Math.floor((totalSec % 3600) / 60);
+                
+                let timeText = "";
+                if (h > 0) timeText = `${h}시간`;
+                else timeText = `${m}분`;
                 
                 content += `<div class="day-time">${timeText}</div>`;
                 onClick = `onclick="window.open('${mainVod.link}', '_blank')"`;
