@@ -47,7 +47,7 @@
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
         .modal-content { 
             background: var(--card-bg); margin: 3vh auto; padding: 30px; 
-            width: 95%; max-width: 1200px; height: 90vh; 
+            width: 95%; max-width: 1300px; height: 90vh; /* 너비 약간 더 확장 */
             border-radius: 20px; position: relative; display: flex; flex-direction: column; 
             box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
             overflow: hidden; 
@@ -64,8 +64,8 @@
 
         /* Modal Body Grid (Left: Calendar, Right: Graph) */
         .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
-        .left-panel { flex: 1.2; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; } /* 달력 영역 확대 */
-        .right-panel { flex: 0.8; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; }
+        .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; } /* 1:1 비율 */
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; } /* 1:1 비율 */
 
         /* Calendar Styles */
         .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -75,9 +75,9 @@
 
         .calendar-grid { display: grid; grid-template-columns: 50px repeat(7, 1fr); gap: 5px; text-align: center; }
         .cal-header { color: var(--text-sub); font-size: 0.8rem; padding: 5px; }
-        .cal-week-stat { font-size: 0.7rem; color: var(--text-sub); display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0f172a; border-radius: 8px; padding: 5px; }
+        .cal-week-stat { font-size: 0.65rem; color: var(--text-sub); display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0f172a; border-radius: 8px; padding: 5px; line-height: 1.4; }
         .cal-day { 
-            background: #334155; border-radius: 8px; min-height: 80px; padding: 5px; 
+            background: #334155; border-radius: 8px; min-height: 85px; padding: 5px; 
             display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
             position: relative; 
         }
@@ -89,9 +89,9 @@
         .day-time { font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-top: auto; margin-bottom: auto; }
 
         /* Graph Container */
-        .chart-container { background: #0f172a; padding: 15px; border-radius: 16px; flex: 1; min-height: 250px; display: flex; flex-direction: column;}
-        .chart-wrapper { flex: 1; position: relative; width: 100%; } /* 캔버스 감싸는 div */
-        h3 { margin-top: 0; font-size: 1rem; color: var(--text-sub); margin-bottom: 10px; }
+        .chart-container { background: #0f172a; padding: 20px; border-radius: 16px; flex: 1; display: flex; flex-direction: column; margin-bottom: 20px; }
+        .chart-wrapper { flex: 1; position: relative; width: 100%; min-height: 400px; } /* 높이 확장 */
+        h3 { margin-top: 0; font-size: 1.1rem; color: var(--text-sub); margin-bottom: 20px; }
 
         footer { text-align: center; margin-top: 50px; color: var(--text-sub); font-size: 0.8rem; }
         
@@ -104,7 +104,7 @@
         @media (max-width: 900px) {
             .modal-body { flex-direction: column; overflow-y: auto; }
             .modal-content { height: auto; max-height: 90vh; }
-            .chart-container { min-height: 250px; }
+            .chart-wrapper { min-height: 300px; }
         }
     </style>
 </head>
@@ -141,7 +141,7 @@
                 </div>
             </div>
             
-            <!-- Right: Graphs -->
+            <!-- Right: Graph -->
             <div class="right-panel">
                 <div class="chart-container">
                     <h3 id="chartTitle">월간 방송 시간 추이</h3>
@@ -149,7 +149,6 @@
                         <canvas id="timeChart"></canvas>
                     </div>
                 </div>
-                <!-- 애청자 그래프 삭제됨 -->
             </div>
         </div>
     </div>
@@ -166,12 +165,9 @@
     const MODAL = document.getElementById('infoModal');
     const STREAMER_DATA = {};
     
-    // 캘린더 상태 (2026년 1월 기준 시작)
     let currentYear = 2026;
     let currentMonth = 1; 
     let currentStreamerId = null;
-
-    // 차트 인스턴스
     let timeChartInstance = null;
 
     document.querySelector('.close').onclick = () => MODAL.style.display = "none";
@@ -227,19 +223,11 @@
         if (!data) return;
 
         currentStreamerId = id;
-        // 초기화: 오늘 날짜 기준으로 하되 2026년 1월로 고정할지, 실제 오늘로 할지?
-        // 요청: 2025.12 ~ 2026.02
-        // 현재 시점(2026.01.03)이라면 2026.01이 적절
-        const now = new Date();
         currentYear = 2026; 
         currentMonth = 1; 
 
-        // 1달(현재 선택된 월) 평균 방송 시간 계산은 renderCalendar 내부 로직에서 처리하는게 나을 수도 있지만,
-        // 여기서는 모달 헤더 초기화를 위해 우선 1월 기준으로 계산
         updateModalHeader(data, currentYear, currentMonth);
-
-        renderCalendar(); // 여기서 renderCharts도 함께 호출됨
-        
+        renderCalendar(); 
         MODAL.style.display = "block";
     }
 
@@ -247,7 +235,6 @@
         const header = document.getElementById('modalHeader');
         const img = data.profile_img || DEFAULT_IMG;
         
-        // 해당 월 평균 방송 시간 계산
         let totalDurationSec = 0;
         let count = 0;
         const monthPrefix = `${year}-${String(month).padStart(2,'0')}`;
@@ -283,21 +270,16 @@
     }
 
     function changeMonth(delta) {
-        // 날짜 연산
         let newDate = new Date(currentYear, currentMonth - 1 + delta, 1);
         let newYear = newDate.getFullYear();
         let newMonth = newDate.getMonth() + 1;
 
-        // 범위 제한: 2025.12 ~ 2026.02
-        // 2025.11 이하면 제한
         if (newYear < 2025 || (newYear === 2025 && newMonth < 12)) return;
-        // 2026.03 이상이면 제한
         if (newYear > 2026 || (newYear === 2026 && newMonth > 2)) return;
 
         currentYear = newYear;
         currentMonth = newMonth;
         
-        // 헤더 업데이트 (평균 시간 재계산)
         if (currentStreamerId && STREAMER_DATA[currentStreamerId]) {
             updateModalHeader(STREAMER_DATA[currentStreamerId], currentYear, currentMonth);
         }
@@ -329,7 +311,6 @@
         
         if(data && data.vods) {
             data.vods.forEach(v => {
-                // v.date = "2025-01-03"
                 if (!vodMap[v.date]) vodMap[v.date] = [];
                 vodMap[v.date].push(v);
             });
@@ -347,7 +328,7 @@
             const vods = vodMap[dateStr];
             
             if ((startDay + d - 1) % 7 === 0) {
-                grid.innerHTML += `<div class="cal-week-stat" id="week-stat-${d}"></div>`;
+                grid.innerHTML += `<div class="cal-week-stat"></div>`;
                 currentWeekStats = { count: 0, totalSec: 0 };
             }
 
@@ -366,7 +347,7 @@
                 currentWeekStats.count += vods.length;
                 currentWeekStats.totalSec += sec;
                 
-                updateWeekStat(d, startDay, currentWeekStats);
+                updateWeekStat(currentWeekStats);
 
                 if (parts.length === 3 && parts[0] > 0) timeText = `${parts[0]}시간`;
                 else if (parts.length === 2) timeText = `${parts[0]}분`;
@@ -379,34 +360,29 @@
             grid.innerHTML += `<div class="${className}" ${onClick}>${content}</div>`;
         }
 
-        // 달력 렌더링 후 차트도 해당 월 데이터로 갱신
         renderCharts(data.vods);
     }
 
-    function updateWeekStat(currentDate, startDay, stats) {
+    function updateWeekStat(stats) {
         const statsDivs = document.getElementsByClassName('cal-week-stat');
         if (statsDivs.length > 0) {
             const lastStat = statsDivs[statsDivs.length - 1];
-            // 요청사항: "횟수, n.n시간" (일 평균으로 계산)
             const avg = stats.count > 0 ? (stats.totalSec / 3600 / stats.count).toFixed(1) : 0.0;
-            lastStat.innerHTML = `<span>${stats.count}회</span><span style="color:#6ee7b7">${avg}h</span>`;
+            lastStat.innerHTML = `<span>${stats.count}회</span><span style="color:#6ee7b7">평균 ${avg}h</span>`;
         }
     }
 
     function renderCharts(vods) {
-        // 현재 선택된 월(currentYear, currentMonth)의 1일 ~ 말일 데이터 표시
         const labels = [];
         const durationData = [];
 
         const lastDayObj = new Date(currentYear, currentMonth, 0);
         const totalDays = lastDayObj.getDate();
         
-        // 날짜 순회 (1일 ~ 말일)
         for (let d = 1; d <= totalDays; d++) {
             const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            labels.push(String(d)); // "1", "2" ... "31"
+            labels.push(String(d)); 
             
-            // 방송 시간 집계
             let dayDuration = 0;
             if (vods) {
                 vods.forEach(v => {
@@ -418,7 +394,6 @@
             durationData.push(dayDuration);
         }
 
-        // 차트 파괴 (메모리 누수 방지 및 애니메이션 리셋)
         if (timeChartInstance) {
             timeChartInstance.destroy();
         }
@@ -433,16 +408,14 @@
                     data: durationData,
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    tension: 0.1, // 선을 좀 더 직선에 가깝게 (변동폭 명확히)
+                    tension: 0.1, 
                     fill: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 0 // 애니메이션 제거 (깜빡임 방지 및 즉시 렌더링)
-                },
+                animation: { duration: 0 },
                 plugins: { 
                     legend: { display: false },
                     tooltip: {
