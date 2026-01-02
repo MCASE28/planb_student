@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOOP Streamer Status</title>
+    <style>
+        body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background-color: #f4f7f9; padding: 20px; margin: 0; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #1e293b; margin-bottom: 40px; font-weight: 800; }
+        
+        /* 스트리머 카드 */
+        #streamer-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { display: flex; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; align-items: center; background: #fff; transition: all 0.3s ease; cursor: pointer; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); border-color: #3b82f6; }
+        .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 3px solid #f1f5f9; }
+        .info { flex: 1; }
+        .info h3 { margin: 0 0 5px 0; font-size: 1.1rem; display: flex; align-items: center; justify-content: space-between; }
+        .status-badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; color: white; background-color: #94a3b8; }
+        .status-badge.live { background-color: #ef4444; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        /* 모달 디자인 */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .modal-content { background: white; margin: 40px auto; padding: 30px; width: 90%; max-width: 800px; border-radius: 24px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .close { position: absolute; right: 25px; top: 20px; font-size: 30px; color: #64748b; cursor: pointer; }
+        
+        .modal-header { display: flex; align-items: center; margin-bottom: 25px; gap: 20px; }
+        .modal-header img { width: 80px; height: 80px; border-radius: 50%; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #f1f5f9; }
+        .stat-card label { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 5px; }
+        .stat-card div { font-size: 1rem; font-weight: 700; color: #1e293b; }
+
+        .vod-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .vod-item { border-radius: 12px; overflow: hidden; background: #fff; border: 1px solid #e2e8f0; transition: transform 0.2s; }
+        .vod-item:hover { transform: scale(1.03); }
+        .vod-item a { text-decoration: none; color: inherit; }
+        .vod-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+        .vod-info { padding: 12px; }
+        .vod-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; line-height: 1.4; height: 2.8em; overflow: hidden; }
+        .vod-meta { font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between; }
+        
+        footer { margin-top: 50px; text-align: center; font-size: 0.8rem; color: #94a3b8; line-height: 1.6; }
+        .loading-spinner { text-align: center; padding: 50px; color: #64748b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SOOP 스트리머 실시간 현황</h1>
+    
+    <div id="streamer-list">
+        <!-- JS에서 카드가 생성됨 -->
+    </div>
+    
+    <footer>
+        <p><strong>[법적 고지 및 안내]</strong></p>
+        <p>본 서비스는 SOOP(AfreecaTV)의 공개된 웹페이지 정보를 실시간으로 조회하여 보여주는 대시보드입니다.<br>
+        수집된 정보는 별도 서버에 저장되지 않으며, 개인적인 모니터링 및 학습 목적으로만 사용됩니다.</p>
+    </footer>
+</div>
+
+<!-- Modal -->
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+    /**
+     * === 관리 설정 (ROOT 파라미터) ===
+     * 분석하고자 하는 스트리머의 ID를 아래 배열에 추가하세요.
+     */
+    const CONFIG = {
+        ids: ['bver99'] // 예: ['id1', 'id2', 'id3']
+    };
+
+    const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23e2e8f0'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2364748b' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
+
+    const MODAL = document.getElementById('infoModal');
+    const MODAL_BODY = document.getElementById('modalBody');
+    const CLOSE_BTN = document.querySelector('.close');
+
+    // 데이터 캐싱을 위한 객체
+    const STREAMER_DATA = {};
+
+    CLOSE_BTN.onclick = () => MODAL.style.display = "none";
+    window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
+
+    async function init() {
+        const listContainer = document.getElementById('streamer-list');
+        listContainer.innerHTML = '';
+
+        for (const id of CONFIG.ids) {
+            await createStreamerCard(id, listContainer);
+        }
+    }
+
+    async function createStreamerCard(id, container) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<div class="loading">ID: ${id} 불러오는 중...</div>`;
+        container.appendChild(card);
+
+        try {
+            // Vercel Serverless Function 호출 (상대 경로 /api/bj_info)
+            // 로컬 테스트 시에는 http://localhost:3000/api/bj_info?id=... 등으로 호출될 수 있음
+            const response = await fetch(`/api/bj_info?id=${id}`);
+            
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            
+            if (!data.success) throw new Error(data.message || 'Data load failed');
+
+            // 데이터 캐싱 (모달에서 사용)
+            STREAMER_DATA[id] = data;
+
+            const name = data.nickname || id;
+            const img = data.profile_img || DEFAULT_IMG;
+            const isLive = data.is_live;
+
+            card.innerHTML = `
+                <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
+                <div class="info">
+                    <h3>${name} <span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></h3>
+                    <p style="font-size:0.85rem; color:#64748b;">@${id}</p>
+                </div>
+            `;
+            
+            card.onclick = () => openDetail(id);
+
+        } catch (err) {
+            console.error(err);
+            card.innerHTML = `
+                <div class="info">
+                    <h3>${id}</h3>
+                    <p class="error" style="font-size:0.8rem; color:red;">로딩 실패</p>
+                </div>
+            `;
+        }
+    }
+
+    function openDetail(id) {
+        const data = STREAMER_DATA[id];
+        if (!data) return;
+
+        MODAL.style.display = "block";
+        
+        // VOD 데이터 전처리 (날짜 변환 등)
+        const vods = data.vods.map(v => ({
+            ...v,
+            timestamp: new Date(v.date.replace(/\./g, '-'))
+        }));
+
+        const stats = calculateStats(vods);
+        renderModal(id, data.nickname, data.profile_img, vods, stats);
+    }
+
+    function calculateStats(vods) {
+        if (!vods || vods.length === 0) return null;
+        
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const weeklyVods = vods.filter(v => v.timestamp >= oneWeekAgo);
+        
+        let totalSec = 0;
+        weeklyVods.forEach(v => {
+            const parts = v.duration.split(':').map(Number);
+            let sec = 0;
+            if (parts.length === 3) sec = parts[0]*3600 + parts[1]*60 + parts[2];
+            else if (parts.length === 2) sec = parts[0]*60 + parts[1];
+            totalSec += sec;
+        });
+
+        const avgSec = weeklyVods.length > 0 ? totalSec / 7 : 0; 
+
+        return {
+            recent: vods[0],
+            weeklyCount: weeklyVods.length,
+            avgDuration: formatTime(avgSec)
+        };
+    }
+
+    function formatTime(sec) {
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+    }
+
+    function renderModal(id, name, img, vods, stats) {
+        let displayImg = img || DEFAULT_IMG;
+        
+        let html = `
+            <div class="modal-header">
+                <img src="${displayImg}" onerror="this.src='${DEFAULT_IMG}'">
+                <div>
+                    <h2 style="margin:0">${name}</h2>
+                    <p style="color:#64748b; margin:5px 0 0 0">@${id} 상세 현황</p>
+                </div>
+            </div>
+        `;
+
+        if (stats) {
+            html += `
+                <div class="stats-grid">
+                    <div class="stat-card"><label>최근 방송일</label><div>${stats.recent.date}</div></div>
+                    <div class="stat-card"><label>최근 방송 시간</label><div>${stats.recent.duration}</div></div>
+                    <div class="stat-card"><label>주간 방송 횟수</label><div>${stats.weeklyCount}회</div></div>
+                    <div class="stat-card"><label>일 평균 방송(주간)</label><div>${stats.avgDuration}</div></div>
+                </div>
+            `;
+        } else {
+            html += `<p class="error">최근 방송 기록이 없습니다.</p>`;
+        }
+
+        html += `<h3>최근 다시보기</h3><div class="vod-list">`;
+        if (vods.length > 0) {
+            vods.forEach(v => {
+                let thumb = v.thumb || DEFAULT_IMG;
+                html += `
+                    <div class="vod-item">
+                        <a href="${v.link}" target="_blank">
+                            <img src="${thumb}" class="vod-thumb" loading="lazy" onerror="this.src='${DEFAULT_IMG}'">
+                            <div class="vod-info">
+                                <div class="vod-title">${v.title}</div>
+                                <div class="vod-meta"><span>${v.date}</span><span>${v.duration}</span></div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            });
+        } else {
+            html += `<p style="grid-column: 1/-1; text-align:center;">표시할 다시보기가 없습니다.</p>`;
+        }
+        html += `</div>`;
+        MODAL_BODY.innerHTML = html;
+    }
+
+    init();
+</script>
+
+</body>
+</html>
