@@ -66,7 +66,6 @@
         .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
         .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
         
-        /* Right Panel Centering Fix */
         .right-panel { 
             flex: 1; 
             display: flex; 
@@ -74,19 +73,19 @@
             gap: 20px; 
             overflow-y: auto; 
             padding-right: 10px;
-            justify-content: center; /* 세로 중앙 정렬 추가 */
+            justify-content: center; 
         }
 
         /* Legend Style */
         .calendar-legend {
-            display: flex; gap: 15px; font-size: 1rem; color: var(--text-sub); 
+            display: flex; gap: 15px; font-size: 0.75rem; color: var(--text-sub); 
             margin-bottom: 15px; background: #0f172a; padding: 10px 15px; border-radius: 12px;
             align-self: flex-start;
         }
         .legend-item { display: flex; align-items: center; gap: 6px; }
-        .box-vod { width: 15px; height: 15px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 3px; }
-        .box-multi { width: 15px; height: 15px; background: rgba(16, 185, 129, 0.2); border: 1px solid #3b82f6; border-radius: 3px; }
-        .box-empty { width: 15px; height: 15px; background: #334155; border-radius: 3px; }
+        .box-vod { width: 12px; height: 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 3px; }
+        .box-multi { width: 12px; height: 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid #3b82f6; border-radius: 3px; }
+        .box-empty { width: 12px; height: 12px; background: #334155; border-radius: 3px; }
 
         /* Calendar Styles */
         .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -115,7 +114,7 @@
             background: #0f172a; padding: 20px; border-radius: 16px; 
             display: flex; flex-direction: column; margin-bottom: 20px; 
         }
-        .chart-wrapper { position: relative; width: 100%; min-height: 250px; height: 250px; } 
+        .chart-wrapper { position: relative; width: 100%; min-height: 200px; height: 200px; } 
         h3 { margin-top: 0; font-size: 1.1rem; color: var(--text-sub); margin-bottom: 20px; }
 
         footer { text-align: center; margin-top: 50px; color: var(--text-sub); font-size: 0.8rem; }
@@ -375,21 +374,17 @@
 
                 vods.forEach((v, index) => {
                     totalSec += (v.duration_sec || 0);
-                    
                     const parts = v.duration.split(':').map(Number);
                     let tStr = "";
                     if(parts.length===3 && parts[0]>0) tStr = `${parts[0]}시간`;
                     else if(parts.length===2) tStr = `${parts[0]}분`;
                     else tStr = v.duration;
-
                     timeHtml += `<div>${tStr}</div>`;
                 });
 
                 const mainVod = vods[0]; 
-
                 currentWeekStats.count += vods.length;
                 currentWeekStats.totalSec += totalSec;
-                
                 updateWeekStat(currentWeekStats);
 
                 content += `<div class="day-time">${timeHtml}</div>`;
@@ -414,28 +409,22 @@
     function renderCharts(vods) {
         const labels = [];
         const durationData = [];
-
         const lastDayObj = new Date(currentYear, currentMonth, 0);
         const totalDays = lastDayObj.getDate();
         
         for (let d = 1; d <= totalDays; d++) {
             const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             labels.push(String(d)); 
-            
             let dayDuration = 0;
             if (vods) {
                 vods.forEach(v => {
-                    if (v.date === dateStr) {
-                        dayDuration += (v.duration_sec || 0) / 3600; 
-                    }
+                    if (v.date === dateStr) dayDuration += (v.duration_sec || 0) / 3600; 
                 });
             }
             durationData.push(dayDuration);
         }
 
-        if (timeChartInstance) {
-            timeChartInstance.destroy();
-        }
+        if (timeChartInstance) timeChartInstance.destroy();
 
         const ctx1 = document.getElementById('timeChart').getContext('2d');
         timeChartInstance = new Chart(ctx1, {
@@ -447,7 +436,7 @@
                     data: durationData,
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    tension: 0.1, 
+                    tension: 0.4,  /* 0.1에서 0.4로 변경하여 곡선형으로 만듦 */
                     fill: true
                 }]
             },
