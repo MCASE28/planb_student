@@ -15,7 +15,7 @@
             --accent: #3b82f6;
             --live: #ef4444;
             --calendar-cell: #334155;
-            --calendar-active: #10b981; /* 연한 녹색 -> 조금 진한 녹색으로 변경 (가독성) */
+            --calendar-active: #10b981; 
             --calendar-active-text: #ffffff;
         }
 
@@ -54,12 +54,13 @@
         }
         .close { position: absolute; right: 25px; top: 20px; font-size: 30px; color: var(--text-sub); cursor: pointer; z-index: 10; }
         
+        /* Modal Header - CSS Fix Applied Here */
         .modal-header { display: flex; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
-        .modal-header img { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; border: 2px solid #475569; }
+        .modal-header > img { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; border: 2px solid #475569; }
         .modal-header h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
         .soop-link { display: inline-flex; align-items: center; text-decoration: none; background: #334155; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; color: #fff; transition: background 0.2s; }
         .soop-link:hover { background: var(--accent); }
-        .soop-icon { width: 16px; height: 16px; margin-right: 5px; border-radius: 4px; }
+        .soop-icon { width: 16px !important; height: 16px !important; margin-right: 5px; border-radius: 4px; vertical-align: middle; }
 
         /* Modal Body Grid (Left: Calendar, Right: Graphs) */
         .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
@@ -131,7 +132,7 @@
             <div class="left-panel">
                 <div class="calendar-controls">
                     <button class="btn-month" onclick="changeMonth(-1)">◀</button>
-                    <div class="calendar-title" id="calTitle">2025. 1</div>
+                    <div class="calendar-title" id="calTitle">2026. 1</div>
                     <button class="btn-month" onclick="changeMonth(1)">▶</button>
                 </div>
                 <div class="calendar-grid" id="calendarGrid">
@@ -142,11 +143,11 @@
             <!-- Right: Graphs -->
             <div class="right-panel">
                 <div class="chart-container">
-                    <h3>최근 7일 방송 시간 추이</h3>
+                    <h3>2026년 1월 1일 ~ 현재 방송 시간</h3>
                     <canvas id="timeChart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>최근 7일 VOD 조회수 추이</h3>
+                    <h3>2026년 1월 1일 ~ 현재 애청자 수</h3>
                     <canvas id="viewChart"></canvas>
                 </div>
             </div>
@@ -160,14 +161,14 @@
     };
 
     const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
-    const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; // SOOP 공식 파비콘 주소 추정
+    const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; // SOOP 공식 파비콘
 
     const MODAL = document.getElementById('infoModal');
     const STREAMER_DATA = {};
     
-    // 캘린더 상태
-    let currentYear = 2025;
-    let currentMonth = 1; // 1월
+    // 캘린더 상태 (2026년 기준)
+    let currentYear = 2026;
+    let currentMonth = 1; 
     let currentStreamerId = null;
 
     // 차트 인스턴스
@@ -227,8 +228,30 @@
         if (!data) return;
 
         currentStreamerId = id;
-        currentYear = 2025; 
-        currentMonth = 1; // 기본 1월 시작 (2025년 1월 기준)
+        currentYear = 2026; 
+        currentMonth = 1; 
+
+        // 1달(이번달 기준) 평균 방송 시간 계산
+        let totalDurationSec = 0;
+        let count = 0;
+        const now = new Date(); // 2026-01-XX
+        const thisMonthPrefix = `2026-${String(now.getMonth()+1).padStart(2,'0')}`;
+        
+        data.vods.forEach(v => {
+            if (v.date.startsWith(thisMonthPrefix)) {
+                totalDurationSec += v.duration_sec || 0;
+                count++;
+            }
+        });
+        
+        // 방송 1회당 평균 시간
+        let avgTimeStr = "0분";
+        if (count > 0) {
+            const avgSec = totalDurationSec / count;
+            const h = Math.floor(avgSec / 3600);
+            const m = Math.floor((avgSec % 3600) / 60);
+            avgTimeStr = h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+        }
 
         // Header
         const header = document.getElementById('modalHeader');
@@ -242,24 +265,21 @@
                     </a>
                 </h2>
                 <p style="color:var(--text-sub); margin:5px 0 0 0">
-                    애청자 ${data.fan_cnt.toLocaleString()}명 · 누적 방문 ${data.total_visit_cnt.toLocaleString()}
+                    애청자 ${data.fan_cnt.toLocaleString()}명 · 1달 평균 방송시간 ${avgTimeStr}
                 </p>
             </div>
         `;
 
-        // Render Calendar & Charts
         renderCalendar();
-        renderCharts(data.vods);
+        renderCharts(data.vods, data.fan_cnt);
         
         MODAL.style.display = "block";
     }
 
     function changeMonth(delta) {
         currentMonth += delta;
-        // 2025년 1월 ~ 2월 범위 제한
         if (currentMonth < 1) currentMonth = 1;
         if (currentMonth > 2) currentMonth = 2;
-        
         renderCalendar();
     }
 
@@ -270,56 +290,38 @@
         title.innerText = `${currentYear}. ${currentMonth}`;
         grid.innerHTML = '';
 
-        // 요일 헤더
         const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
         days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
 
         const firstDay = new Date(currentYear, currentMonth - 1, 1);
         const lastDay = new Date(currentYear, currentMonth, 0);
         
-        const startDay = firstDay.getDay(); // 0(일) ~ 6(토)
+        const startDay = firstDay.getDay(); 
         const totalDays = lastDay.getDate();
 
-        // 날짜별 VOD 매핑
         const data = STREAMER_DATA[currentStreamerId];
-        const vodMap = {}; // "2025-01-03": { duration: "3h", link: "...", count: 1 }
+        const vodMap = {}; 
         
         if(data && data.vods) {
             data.vods.forEach(v => {
-                // v.date = "2025-01-03"
                 if (!vodMap[v.date]) vodMap[v.date] = [];
                 vodMap[v.date].push(v);
             });
         }
 
-        // 주차별 통계 계산을 위한 변수
         let currentWeekStats = { count: 0, totalSec: 0 };
-        let dayCount = 0;
 
-        // 앞쪽 빈칸
         for (let i = 0; i < startDay; i++) {
-            if (i === 0) {
-                 // 첫 주 시작 전 빈 주간 통계 칸 (필요시)
-                 grid.innerHTML += `<div class="cal-week-stat"></div>`; 
-            }
+            if (i === 0) grid.innerHTML += `<div class="cal-week-stat"></div>`;
             grid.innerHTML += `<div class="cal-day empty"></div>`;
-            dayCount++;
         }
 
-        // 날짜 채우기
         for (let d = 1; d <= totalDays; d++) {
             const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const vods = vodMap[dateStr];
             
-            // 일요일(새 주 시작)마다 주간 통계 칸 추가
             if ((startDay + d - 1) % 7 === 0) {
-                // 이전 주 통계 렌더링은 구조상 복잡하므로, 여기서는 그냥 '주간' 칸을 만들고
-                // 나중에 채워넣거나, 단순하게 칸만 유지. 
-                // *요청사항: 달력 제일 좌측에 주마다 "횟수, n.n시간"*
-                // 이를 위해 DOM 요소를 먼저 만들고 ID를 부여해 나중에 채우는 방식 사용
                 grid.innerHTML += `<div class="cal-week-stat" id="week-stat-${d}"></div>`;
-                
-                // 주간 통계 리셋
                 currentWeekStats = { count: 0, totalSec: 0 };
             }
 
@@ -329,28 +331,20 @@
 
             if (vods && vods.length > 0) {
                 className += " has-vod";
-                // 대표 VOD (가장 긴 것 or 최신)
                 const mainVod = vods[0]; 
                 
-                // 시간 표시 (n시간 or n분)
-                // duration_str "03:20:10" -> "3시간"
                 const parts = mainVod.duration.split(':').map(Number);
                 let timeText = "";
-                let sec = 0;
-                if(parts.length===3) { sec = parts[0]*3600 + parts[1]*60 + parts[2]; }
-                else { sec = parts[0]*60 + parts[1]; }
+                let sec = mainVod.duration_sec || 0;
 
-                // 주간 통계 누적
                 currentWeekStats.count += vods.length;
                 currentWeekStats.totalSec += sec;
                 
-                // 현재 주간 통계 DOM 업데이트 (방금 만든 ID 찾아서)
-                // 주의: 이렇게 하면 주가 끝나는 시점에 업데이트해야 정확함.
-                // 편의상 실시간 누적 후 덮어쓰기
                 updateWeekStat(d, startDay, currentWeekStats);
 
                 if (parts.length === 3 && parts[0] > 0) timeText = `${parts[0]}시간`;
-                else timeText = `${parts[1]}분`;
+                else if (parts.length === 2) timeText = `${parts[0]}분`;
+                else timeText = mainVod.duration; 
                 
                 content += `<div class="day-time">${timeText}</div>`;
                 onClick = `onclick="window.open('${mainVod.link}', '_blank')"`;
@@ -361,53 +355,44 @@
     }
 
     function updateWeekStat(currentDate, startDay, stats) {
-        // 현재 날짜가 속한 주의 시작 일요일 찾기
-        // (startDay + currentDate - 1) % 7 == 0 이면 일요일
-        // 역산 필요. 
-        // 그냥 간단하게: 가장 최근에 생성된 cal-week-stat div를 찾아서 업데이트
         const statsDivs = document.getElementsByClassName('cal-week-stat');
         if (statsDivs.length > 0) {
             const lastStat = statsDivs[statsDivs.length - 1];
-            const avg = stats.count > 0 ? (stats.totalSec / 3600 / stats.count).toFixed(1) : 0;
-            // 누적 방송시간으로 계산할지, 평균으로 할지? 요청은 "일 평균 방송(주간)"
-            // -> 총 시간 / 방송 횟수? 아니면 총 시간 / 7일? 
-            // "주간 방송 횟수, 일 평균 방송" -> 보통 (총 시간 / 7) or (총 시간 / 횟수)
-            // 요청: "횟수, n.n시간" 
-            // 여기서는 (총 방송 시간 / 방송 횟수)로 평균 방송 시간을 계산
+            const avg = stats.count > 0 ? (stats.totalSec / 3600 / stats.count).toFixed(1) : 0.0;
             lastStat.innerHTML = `<span>${stats.count}회</span><span style="color:#6ee7b7">${avg}h</span>`;
         }
     }
 
-    function renderCharts(vods) {
-        // 데이터 전처리 (최근 7일)
-        // 날짜별 합산이 필요함 (하루에 방송 2번 할 수도 있음)
-        const dailyStats = {};
-        const today = new Date();
-        
-        // 최근 7일 날짜 라벨 생성
+    function renderCharts(vods, currentFanCnt) {
+        // 기준일: 2026-01-01 ~ 오늘 (2026-01-03)
         const labels = [];
-        for(let i=6; i>=0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
+        const durationData = [];
+        const fanData = [];
+
+        const start = new Date('2026-01-01');
+        const end = new Date(); // 2026-01-03
+        
+        // 날짜 순회
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             const dateStr = d.toISOString().split('T')[0];
-            labels.push(dateStr);
-            dailyStats[dateStr] = { duration: 0, views: 0 };
+            labels.push(dateStr.slice(5)); // "01-01"
+            
+            // 방송 시간 집계
+            let dayDuration = 0;
+            if (vods) {
+                vods.forEach(v => {
+                    if (v.date === dateStr) {
+                        dayDuration += (v.duration_sec || 0) / 3600; 
+                    }
+                });
+            }
+            durationData.push(dayDuration);
+            
+            // 애청자 수 (변동 없음)
+            fanData.push(currentFanCnt);
         }
 
-        if (vods) {
-            vods.forEach(v => {
-                if (dailyStats[v.date]) {
-                    dailyStats[v.date].duration += (v.duration_sec || 0) / 3600; // 시간 단위
-                    dailyStats[v.date].views += (v.read_cnt || 0);
-                }
-            });
-        }
-
-        const durationData = labels.map(d => dailyStats[d].duration);
-        const viewData = labels.map(d => dailyStats[d].views);
-        const shortLabels = labels.map(d => d.slice(5)); // "01-03"
-
-        // 차트 파괴 (재사용 시)
+        // 차트 파괴
         if (timeChartInstance) timeChartInstance.destroy();
         if (viewChartInstance) viewChartInstance.destroy();
 
@@ -416,9 +401,9 @@
         timeChartInstance = new Chart(ctx1, {
             type: 'line',
             data: {
-                labels: shortLabels,
+                labels: labels,
                 datasets: [{
-                    label: '방송 시간 (시간)',
+                    label: '방송 시간',
                     data: durationData,
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
@@ -429,7 +414,16 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toFixed(1) + '시간'; 
+                            }
+                        }
+                    }
+                },
                 scales: {
                     y: { beginAtZero: true, grid: { color: '#334155' } },
                     x: { grid: { display: false } }
@@ -437,19 +431,20 @@
             }
         });
 
-        // 2. 조회수 차트 (애청자 추이 대체)
+        // 2. 애청자 수 차트
         const ctx2 = document.getElementById('viewChart').getContext('2d');
         viewChartInstance = new Chart(ctx2, {
             type: 'line',
             data: {
-                labels: shortLabels,
+                labels: labels,
                 datasets: [{
-                    label: 'VOD 조회수',
-                    data: viewData,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    tension: 0.3,
-                    fill: true
+                    label: '애청자 수',
+                    data: fanData,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    tension: 0,
+                    fill: false,
+                    pointRadius: 2
                 }]
             },
             options: {
@@ -457,19 +452,20 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    y: { 
+                        beginAtZero: false, 
+                        grid: { color: '#334155' } 
+                    },
                     x: { grid: { display: false } }
                 }
             }
         });
     }
     
-    // 색상 테마 설정을 위해 Chart 기본값 변경
     Chart.defaults.color = '#94a3b8';
     Chart.defaults.borderColor = '#334155';
 
     init();
 </script>
-
 </body>
 </html>
