@@ -28,8 +28,8 @@ class handler(BaseHTTPRequestHandler):
             # 모바일 페이지가 데이터 구조가 단순하여 크롤링에 유리한 경우가 많음
             # 메인 스테이션 (라이브 여부, 프로필)
             station_url = f"https://bj.afreecatv.com/{bj_id}"
-            # 다시보기 목록 (모바일 웹 페이지 활용)
-            vod_url = f"https://mw.afreecatv.com/station/{bj_id}/vod"
+            # 다시보기 목록 (PC 웹 페이지 활용)
+            vod_url = f"https://bj.afreecatv.com/{bj_id}/vods"
 
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -53,38 +53,56 @@ class handler(BaseHTTPRequestHandler):
             if "class=\"btn_broadcast on\"" in res_station.text or "player_live" in res_station.text:
                 is_live = True
 
-            # 4. 데이터 수집 (VOD 페이지) - 모바일 페이지 파싱이 더 안정적일 수 있음
-            # 모바일 페이지 요청
+            # 4. 데이터 수집 (VOD 페이지) - PC 페이지 활용 (모바일 mw 도메인 접속 불가 대응)
             res_vod = requests.get(vod_url, headers=headers, timeout=5)
             soup_vod = BeautifulSoup(res_vod.text, 'html.parser')
             
             vod_list = []
-            # 모바일 VOD 리스트 파싱 로직 (mw.afreecatv.com 구조 기준)
-            # 보통 ul.list_type1 > li 구조
-            items = soup_vod.select('.list_type1 li')
-            if not items:
-                items = soup_vod.select('li[data-type="vod"]')
+            
+            # PC 페이지 구조가 다양할 수 있으므로 범용적인 탐색 시도
+            # VOD 리스트는 보통 li 태그로 구성됨
+            items = soup_vod.select('li')
 
-            for item in items[:10]: # 최근 10개만
+            for item in items:
                 try:
-                    title_tag = item.select_one('.title, .subject')
-                    link_tag = item.select_one('a')
+                    # 제목: .tit, .title, .subject 클래스 또는 dt 태그 내부
+                    title_tag = item.select_one('.tit, .title, .subject, dt a')
+                    # 링크: 썸네일 링크(.thumb) 또는 일반 링크
+                    link_tag = item.select_one('a.thumb, a.box_link')
+                    if not link_tag:
+                        link_tag = item.select_one('a')
+                    # 썸네일 이미지
                     thumb_tag = item.select_one('img')
-                    time_tag = item.select_one('.time, .running_time')
-                    date_tag = item.select_one('.date, .reg_date')
+                    # 시간 및 날짜
+                    time_tag = item.select_one('.time, .runtime, .running_time')
+                    date_tag = item.select_one('.date, .reg_date, .day')
 
-                    if title_tag and link_tag:
-                        link = link_tag['href']
-                        if not link.startswith('http'):
-                            link = f"https://mw.afreecatv.com{link}"
+                    # 필수 요소(제목, 링크, 이미지)가 모두 있어야 VOD 항목으로 인정
+                    if title_tag and link_tag and thumb_tag:
+                        link = link_tag.get('href', '')
+                        # 자바스크립트 링크나 앵커 링크 제외
+                        if not link or 'javascript' in link or link == '#':
+                            continue
                             
+                        if not link.startswith('http'):
+                            link = f"https://bj.afreecatv.com{link}"
+
+                        # 이미지 소스 (src 또는 data-original 등)
+                        thumb_src = thumb_tag.get('src', '')
+                        
+                        # 이미지가 없거나 아이콘인 경우 스킵 (선택사항)
+                        if not thumb_src: continue
+
                         vod_list.append({
                             'title': title_tag.get_text(strip=True),
                             'link': link,
-                            'thumb': thumb_tag['src'] if thumb_tag else "",
-                            'duration': time_tag.get_text(strip=True) if time_tag else "00:00",
+                            'thumb': thumb_src,
+                            'duration': time_tag.get_text(strip=True) if time_tag else "",
                             'date': date_tag.get_text(strip=True) if date_tag else ""
                         })
+                        
+                        if len(vod_list) >= 8: # 최대 8개까지만
+                            break
                 except Exception:
                     continue
 
