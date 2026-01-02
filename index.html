@@ -4,61 +4,120 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOOP Streamer Status</title>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background-color: #f4f7f9; padding: 20px; margin: 0; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        h1 { text-align: center; color: #1e293b; margin-bottom: 40px; font-weight: 800; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --accent: #3b82f6;
+            --live: #ef4444;
+            --calendar-cell: #334155;
+            --calendar-active: #10b981; /* 연한 녹색 -> 조금 진한 녹색으로 변경 (가독성) */
+            --calendar-active-text: #ffffff;
+        }
+
+        body { font-family: 'Pretendard', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; padding-bottom: 50px; }
         
-        /* 스트리머 카드 */
+        h1 { text-align: center; margin-bottom: 40px; font-weight: 800; color: var(--text-main); font-size: 2rem; }
+
+        /* Grid Layout */
         #streamer-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .card { display: flex; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; align-items: center; background: #fff; transition: all 0.3s ease; cursor: pointer; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.1); border-color: #3b82f6; }
-        .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 3px solid #f1f5f9; }
-        .info { flex: 1; }
+        
+        /* Card Style */
+        .card { 
+            display: flex; align-items: center; 
+            background: var(--card-bg); border: 1px solid #334155; 
+            padding: 20px; border-radius: 16px; 
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; 
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-color: var(--accent); }
+        .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #475569; }
+        
         .info h3 { margin: 0 0 5px 0; font-size: 1.1rem; display: flex; align-items: center; justify-content: space-between; }
-        .status-badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; color: white; background-color: #94a3b8; }
-        .status-badge.live { background-color: #ef4444; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #475569; color: #cbd5e1; }
+        .status-badge.live { background-color: var(--live); color: white; animation: pulse 2s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* 모달 디자인 */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 40px auto; padding: 30px; width: 90%; max-width: 800px; border-radius: 24px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-        .close { position: absolute; right: 25px; top: 20px; font-size: 30px; color: #64748b; cursor: pointer; }
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
+        .modal-content { 
+            background: var(--card-bg); margin: 3vh auto; padding: 30px; 
+            width: 95%; max-width: 1200px; height: 90vh; 
+            border-radius: 20px; position: relative; display: flex; flex-direction: column; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+            overflow: hidden; /* 내부 스크롤 사용 */
+        }
+        .close { position: absolute; right: 25px; top: 20px; font-size: 30px; color: var(--text-sub); cursor: pointer; z-index: 10; }
         
-        .modal-header { display: flex; align-items: center; margin-bottom: 25px; gap: 20px; }
-        .modal-header img { width: 80px; height: 80px; border-radius: 50%; }
-        
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .stat-card { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #f1f5f9; }
-        .stat-card label { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 5px; }
-        .stat-card div { font-size: 1rem; font-weight: 700; color: #1e293b; }
+        .modal-header { display: flex; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
+        .modal-header img { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; border: 2px solid #475569; }
+        .modal-header h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
+        .soop-link { display: inline-flex; align-items: center; text-decoration: none; background: #334155; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; color: #fff; transition: background 0.2s; }
+        .soop-link:hover { background: var(--accent); }
+        .soop-icon { width: 16px; height: 16px; margin-right: 5px; border-radius: 4px; }
 
-        .vod-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-        .vod-item { border-radius: 12px; overflow: hidden; background: #fff; border: 1px solid #e2e8f0; transition: transform 0.2s; }
-        .vod-item:hover { transform: scale(1.03); }
-        .vod-item a { text-decoration: none; color: inherit; }
-        .vod-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
-        .vod-info { padding: 12px; }
-        .vod-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; line-height: 1.4; height: 2.8em; overflow: hidden; }
-        .vod-meta { font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between; }
+        /* Modal Body Grid (Left: Calendar, Right: Graphs) */
+        .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
+        .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; }
+
+        /* Calendar Styles */
+        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .calendar-title { font-size: 1.2rem; font-weight: bold; }
+        .btn-month { background: none; border: 1px solid #475569; color: var(--text-main); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+        .btn-month:hover { background: #334155; }
+
+        .calendar-grid { display: grid; grid-template-columns: 50px repeat(7, 1fr); gap: 5px; text-align: center; }
+        .cal-header { color: var(--text-sub); font-size: 0.8rem; padding: 5px; }
+        .cal-week-stat { font-size: 0.7rem; color: var(--text-sub); display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0f172a; border-radius: 8px; padding: 5px; }
+        .cal-day { 
+            background: #334155; border-radius: 8px; min-height: 80px; padding: 5px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            position: relative; 
+        }
+        .cal-day.empty { background: transparent; }
+        .cal-day.has-vod { background: rgba(16, 185, 129, 0.2); cursor: pointer; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .cal-day.has-vod:hover { background: rgba(16, 185, 129, 0.3); }
         
-        footer { margin-top: 50px; text-align: center; font-size: 0.8rem; color: #94a3b8; line-height: 1.6; }
-        .loading-spinner { text-align: center; padding: 50px; color: #64748b; }
+        .day-num { font-size: 0.9rem; margin-bottom: 5px; width: 100%; text-align: left; padding-left: 5px; font-weight: bold; }
+        .day-time { font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-top: auto; margin-bottom: auto; }
+
+        /* Graph Container */
+        .chart-container { background: #0f172a; padding: 15px; border-radius: 16px; flex: 1; min-height: 250px; }
+        h3 { margin-top: 0; font-size: 1rem; color: var(--text-sub); margin-bottom: 10px; }
+
+        footer { text-align: center; margin-top: 50px; color: var(--text-sub); font-size: 0.8rem; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @media (max-width: 900px) {
+            .modal-body { flex-direction: column; overflow-y: auto; }
+            .modal-content { height: auto; max-height: 90vh; }
+            .chart-container { min-height: 200px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>SOOP 스트리머 실시간 현황</h1>
+    <h1>SOOP Streamer Status</h1>
     
-    <div id="streamer-list">
-        <!-- JS에서 카드가 생성됨 -->
-    </div>
+    <div id="streamer-list"></div>
     
     <footer>
-        <p><strong>[법적 고지 및 안내]</strong></p>
-        <p>본 서비스는 SOOP(AfreecaTV)의 공개된 웹페이지 정보를 실시간으로 조회하여 보여주는 대시보드입니다.<br>
-        수집된 정보는 별도 서버에 저장되지 않습니다.</p>
+        <p><strong>[안내]</strong></p>
+        <p>본 서비스는 팬심으로 제작된 비공식 팬 사이트입니다.<br>
+        SOOP(AfreecaTV)의 데이터를 실시간으로 조회하며, 방송인의 권리를 침해할 의도가 없습니다.<br>
+        플랫폼 사정에 따라 데이터 조회가 일시적으로 제한될 수 있습니다.</p>
     </footer>
 </div>
 
@@ -66,52 +125,70 @@
 <div id="infoModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <div id="modalBody"></div>
+        <div id="modalHeader" class="modal-header"></div>
+        <div class="modal-body">
+            <!-- Left: Calendar -->
+            <div class="left-panel">
+                <div class="calendar-controls">
+                    <button class="btn-month" onclick="changeMonth(-1)">◀</button>
+                    <div class="calendar-title" id="calTitle">2025. 1</div>
+                    <button class="btn-month" onclick="changeMonth(1)">▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- JS Generated -->
+                </div>
+            </div>
+            
+            <!-- Right: Graphs -->
+            <div class="right-panel">
+                <div class="chart-container">
+                    <h3>최근 7일 방송 시간 추이</h3>
+                    <canvas id="timeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>최근 7일 VOD 조회수 추이</h3>
+                    <canvas id="viewChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    /**
-     * === 관리 설정 (ROOT 파라미터) ===
-     * 분석하고자 하는 스트리머의 ID를 아래 배열에 추가하세요.
-     */
     const CONFIG = {
-        ids: [
-            'likethis1125', //도페
-            'gome02',      //밤문
-            'moonightwmn',  //백월야
-            'bluejin0129',  //지오
-            'uleharaaki',   // 양아키
-            
-            ] 
+        ids: ['likethis1125', 'gome02', 'moonightwmn', 'bluejin0129', 'uleharaaki', 'beemong'] 
     };
 
-    const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23e2e8f0'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2364748b' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
+    const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
+    const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; // SOOP 공식 파비콘 주소 추정
 
     const MODAL = document.getElementById('infoModal');
-    const MODAL_BODY = document.getElementById('modalBody');
-    const CLOSE_BTN = document.querySelector('.close');
-
-    // 데이터 캐싱을 위한 객체
     const STREAMER_DATA = {};
+    
+    // 캘린더 상태
+    let currentYear = 2025;
+    let currentMonth = 1; // 1월
+    let currentStreamerId = null;
 
-    CLOSE_BTN.onclick = () => MODAL.style.display = "none";
+    // 차트 인스턴스
+    let timeChartInstance = null;
+    let viewChartInstance = null;
+
+    document.querySelector('.close').onclick = () => MODAL.style.display = "none";
     window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
 
     async function init() {
         const listContainer = document.getElementById('streamer-list');
         listContainer.innerHTML = '';
 
-        // 카드를 미리 생성 (로딩 상태)
         CONFIG.ids.forEach(id => {
             const card = document.createElement('div');
             card.className = 'card';
             card.id = `card-${id}`;
-            card.innerHTML = `<div class="loading">ID: ${id} 불러오는 중...</div>`;
+            card.innerHTML = `<div class="loading" style="color:#94a3b8">Loading...</div>`;
             listContainer.appendChild(card);
         });
 
-        // 병렬로 데이터 요청
         const promises = CONFIG.ids.map(id => fetchStreamerData(id));
         await Promise.all(promises);
     }
@@ -119,16 +196,10 @@
     async function fetchStreamerData(id) {
         const card = document.getElementById(`card-${id}`);
         try {
-            // Vercel Serverless Function 호출
             const response = await fetch(`/api/bj_info?id=${id}`);
-            
-            if (!response.ok) throw new Error('Network response was not ok');
-            
+            if (!response.ok) throw new Error('Net err');
             const data = await response.json();
             
-            if (!data.success) throw new Error(data.message || 'Data load failed');
-
-            // 데이터 캐싱
             STREAMER_DATA[id] = data;
 
             const name = data.nickname || id;
@@ -139,122 +210,263 @@
                 <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
                 <div class="info">
                     <h3>${name} <span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></h3>
-                    <p style="font-size:0.85rem; color:#64748b;">@${id}</p>
+                    <p style="font-size:0.85rem; color:var(--text-sub);">@${id}</p>
                 </div>
             `;
             
-            card.onclick = () => openDetail(id);
+            card.onclick = () => openModal(id);
 
         } catch (err) {
             console.error(err);
-            card.innerHTML = `
-                <div class="info">
-                    <h3>${id}</h3>
-                    <p class="error" style="font-size:0.8rem; color:red;">로딩 실패</p>
-                </div>
-            `;
+            card.innerHTML = `<div class="info"><p style="color:var(--live)">Load Failed</p></div>`;
         }
     }
 
-    // 기존 createStreamerCard 함수는 fetchStreamerData로 대체되었으므로 삭제 혹은 위 로직으로 통합됨
-    // 아래는 호환성을 위해 남겨두거나 삭제 가능. 여기서는 위 init 구조 변경에 맞춰 createStreamerCard 호출부를 제거함.
-
-
-    function openDetail(id) {
+    function openModal(id) {
         const data = STREAMER_DATA[id];
         if (!data) return;
 
-        MODAL.style.display = "block";
-        
-        // VOD 데이터 전처리 (날짜 변환 등)
-        const vods = data.vods.map(v => ({
-            ...v,
-            timestamp: new Date(v.date.replace(/\./g, '-'))
-        }));
+        currentStreamerId = id;
+        currentYear = 2025; 
+        currentMonth = 1; // 기본 1월 시작 (2025년 1월 기준)
 
-        const stats = calculateStats(vods);
-        renderModal(id, data.nickname, data.profile_img, vods, stats);
-    }
-
-    function calculateStats(vods) {
-        if (!vods || vods.length === 0) return null;
-        
-        const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const weeklyVods = vods.filter(v => v.timestamp >= oneWeekAgo);
-        
-        let totalSec = 0;
-        weeklyVods.forEach(v => {
-            const parts = v.duration.split(':').map(Number);
-            let sec = 0;
-            if (parts.length === 3) sec = parts[0]*3600 + parts[1]*60 + parts[2];
-            else if (parts.length === 2) sec = parts[0]*60 + parts[1];
-            totalSec += sec;
-        });
-
-        const avgSec = weeklyVods.length > 0 ? totalSec / 7 : 0; 
-
-        return {
-            recent: vods[0],
-            weeklyCount: weeklyVods.length,
-            avgDuration: formatTime(avgSec)
-        };
-    }
-
-    function formatTime(sec) {
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
-    }
-
-    function renderModal(id, name, img, vods, stats) {
-        let displayImg = img || DEFAULT_IMG;
-        
-        let html = `
-            <div class="modal-header">
-                <img src="${displayImg}" onerror="this.src='${DEFAULT_IMG}'">
-                <div>
-                    <h2 style="margin:0">${name}</h2>
-                    <p style="color:#64748b; margin:5px 0 0 0">@${id} 상세 현황</p>
-                </div>
+        // Header
+        const header = document.getElementById('modalHeader');
+        const img = data.profile_img || DEFAULT_IMG;
+        header.innerHTML = `
+            <img src="${img}">
+            <div>
+                <h2>${data.nickname} 
+                    <a href="https://www.sooplive.co.kr/station/${id}" target="_blank" class="soop-link">
+                        <img src="${SOOP_ICON}" class="soop-icon" onerror="this.style.display='none'"> 방송국
+                    </a>
+                </h2>
+                <p style="color:var(--text-sub); margin:5px 0 0 0">
+                    애청자 ${data.fan_cnt.toLocaleString()}명 · 누적 방문 ${data.total_visit_cnt.toLocaleString()}
+                </p>
             </div>
         `;
 
-        if (stats) {
-            html += `
-                <div class="stats-grid">
-                    <div class="stat-card"><label>최근 방송일</label><div>${stats.recent.date}</div></div>
-                    <div class="stat-card"><label>최근 방송 시간</label><div>${stats.recent.duration}</div></div>
-                    <div class="stat-card"><label>주간 방송 횟수</label><div>${stats.weeklyCount}회</div></div>
-                    <div class="stat-card"><label>일 평균 방송(주간)</label><div>${stats.avgDuration}</div></div>
-                </div>
-            `;
-        } else {
-            html += `<p class="error">최근 방송 기록이 없습니다.</p>`;
+        // Render Calendar & Charts
+        renderCalendar();
+        renderCharts(data.vods);
+        
+        MODAL.style.display = "block";
+    }
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        // 2025년 1월 ~ 2월 범위 제한
+        if (currentMonth < 1) currentMonth = 1;
+        if (currentMonth > 2) currentMonth = 2;
+        
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const title = document.getElementById('calTitle');
+        const grid = document.getElementById('calendarGrid');
+        
+        title.innerText = `${currentYear}. ${currentMonth}`;
+        grid.innerHTML = '';
+
+        // 요일 헤더
+        const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
+        days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
+
+        const firstDay = new Date(currentYear, currentMonth - 1, 1);
+        const lastDay = new Date(currentYear, currentMonth, 0);
+        
+        const startDay = firstDay.getDay(); // 0(일) ~ 6(토)
+        const totalDays = lastDay.getDate();
+
+        // 날짜별 VOD 매핑
+        const data = STREAMER_DATA[currentStreamerId];
+        const vodMap = {}; // "2025-01-03": { duration: "3h", link: "...", count: 1 }
+        
+        if(data && data.vods) {
+            data.vods.forEach(v => {
+                // v.date = "2025-01-03"
+                if (!vodMap[v.date]) vodMap[v.date] = [];
+                vodMap[v.date].push(v);
+            });
         }
 
-        html += `<h3>최근 다시보기</h3><div class="vod-list">`;
-        if (vods.length > 0) {
-            vods.forEach(v => {
-                let thumb = v.thumb || DEFAULT_IMG;
-                html += `
-                    <div class="vod-item">
-                        <a href="${v.link}" target="_blank">
-                            <img src="${thumb}" class="vod-thumb" loading="lazy" onerror="this.src='${DEFAULT_IMG}'">
-                            <div class="vod-info">
-                                <div class="vod-title">${v.title}</div>
-                                <div class="vod-meta"><span>${v.date}</span><span>${v.duration}</span></div>
-                            </div>
-                        </a>
-                    </div>
-                `;
-            });
-        } else {
-            html += `<p style="grid-column: 1/-1; text-align:center;">표시할 다시보기가 없습니다.</p>`;
+        // 주차별 통계 계산을 위한 변수
+        let currentWeekStats = { count: 0, totalSec: 0 };
+        let dayCount = 0;
+
+        // 앞쪽 빈칸
+        for (let i = 0; i < startDay; i++) {
+            if (i === 0) {
+                 // 첫 주 시작 전 빈 주간 통계 칸 (필요시)
+                 grid.innerHTML += `<div class="cal-week-stat"></div>`; 
+            }
+            grid.innerHTML += `<div class="cal-day empty"></div>`;
+            dayCount++;
         }
-        html += `</div>`;
-        MODAL_BODY.innerHTML = html;
+
+        // 날짜 채우기
+        for (let d = 1; d <= totalDays; d++) {
+            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const vods = vodMap[dateStr];
+            
+            // 일요일(새 주 시작)마다 주간 통계 칸 추가
+            if ((startDay + d - 1) % 7 === 0) {
+                // 이전 주 통계 렌더링은 구조상 복잡하므로, 여기서는 그냥 '주간' 칸을 만들고
+                // 나중에 채워넣거나, 단순하게 칸만 유지. 
+                // *요청사항: 달력 제일 좌측에 주마다 "횟수, n.n시간"*
+                // 이를 위해 DOM 요소를 먼저 만들고 ID를 부여해 나중에 채우는 방식 사용
+                grid.innerHTML += `<div class="cal-week-stat" id="week-stat-${d}"></div>`;
+                
+                // 주간 통계 리셋
+                currentWeekStats = { count: 0, totalSec: 0 };
+            }
+
+            let content = `<div class="day-num">${d}</div>`;
+            let className = "cal-day";
+            let onClick = "";
+
+            if (vods && vods.length > 0) {
+                className += " has-vod";
+                // 대표 VOD (가장 긴 것 or 최신)
+                const mainVod = vods[0]; 
+                
+                // 시간 표시 (n시간 or n분)
+                // duration_str "03:20:10" -> "3시간"
+                const parts = mainVod.duration.split(':').map(Number);
+                let timeText = "";
+                let sec = 0;
+                if(parts.length===3) { sec = parts[0]*3600 + parts[1]*60 + parts[2]; }
+                else { sec = parts[0]*60 + parts[1]; }
+
+                // 주간 통계 누적
+                currentWeekStats.count += vods.length;
+                currentWeekStats.totalSec += sec;
+                
+                // 현재 주간 통계 DOM 업데이트 (방금 만든 ID 찾아서)
+                // 주의: 이렇게 하면 주가 끝나는 시점에 업데이트해야 정확함.
+                // 편의상 실시간 누적 후 덮어쓰기
+                updateWeekStat(d, startDay, currentWeekStats);
+
+                if (parts.length === 3 && parts[0] > 0) timeText = `${parts[0]}시간`;
+                else timeText = `${parts[1]}분`;
+                
+                content += `<div class="day-time">${timeText}</div>`;
+                onClick = `onclick="window.open('${mainVod.link}', '_blank')"`;
+            }
+
+            grid.innerHTML += `<div class="${className}" ${onClick}>${content}</div>`;
+        }
     }
+
+    function updateWeekStat(currentDate, startDay, stats) {
+        // 현재 날짜가 속한 주의 시작 일요일 찾기
+        // (startDay + currentDate - 1) % 7 == 0 이면 일요일
+        // 역산 필요. 
+        // 그냥 간단하게: 가장 최근에 생성된 cal-week-stat div를 찾아서 업데이트
+        const statsDivs = document.getElementsByClassName('cal-week-stat');
+        if (statsDivs.length > 0) {
+            const lastStat = statsDivs[statsDivs.length - 1];
+            const avg = stats.count > 0 ? (stats.totalSec / 3600 / stats.count).toFixed(1) : 0;
+            // 누적 방송시간으로 계산할지, 평균으로 할지? 요청은 "일 평균 방송(주간)"
+            // -> 총 시간 / 방송 횟수? 아니면 총 시간 / 7일? 
+            // "주간 방송 횟수, 일 평균 방송" -> 보통 (총 시간 / 7) or (총 시간 / 횟수)
+            // 요청: "횟수, n.n시간" 
+            // 여기서는 (총 방송 시간 / 방송 횟수)로 평균 방송 시간을 계산
+            lastStat.innerHTML = `<span>${stats.count}회</span><span style="color:#6ee7b7">${avg}h</span>`;
+        }
+    }
+
+    function renderCharts(vods) {
+        // 데이터 전처리 (최근 7일)
+        // 날짜별 합산이 필요함 (하루에 방송 2번 할 수도 있음)
+        const dailyStats = {};
+        const today = new Date();
+        
+        // 최근 7일 날짜 라벨 생성
+        const labels = [];
+        for(let i=6; i>=0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            labels.push(dateStr);
+            dailyStats[dateStr] = { duration: 0, views: 0 };
+        }
+
+        if (vods) {
+            vods.forEach(v => {
+                if (dailyStats[v.date]) {
+                    dailyStats[v.date].duration += (v.duration_sec || 0) / 3600; // 시간 단위
+                    dailyStats[v.date].views += (v.read_cnt || 0);
+                }
+            });
+        }
+
+        const durationData = labels.map(d => dailyStats[d].duration);
+        const viewData = labels.map(d => dailyStats[d].views);
+        const shortLabels = labels.map(d => d.slice(5)); // "01-03"
+
+        // 차트 파괴 (재사용 시)
+        if (timeChartInstance) timeChartInstance.destroy();
+        if (viewChartInstance) viewChartInstance.destroy();
+
+        // 1. 방송 시간 차트
+        const ctx1 = document.getElementById('timeChart').getContext('2d');
+        timeChartInstance = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: shortLabels,
+                datasets: [{
+                    label: '방송 시간 (시간)',
+                    data: durationData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. 조회수 차트 (애청자 추이 대체)
+        const ctx2 = document.getElementById('viewChart').getContext('2d');
+        viewChartInstance = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: shortLabels,
+                datasets: [{
+                    label: 'VOD 조회수',
+                    data: viewData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    // 색상 테마 설정을 위해 Chart 기본값 변경
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#334155';
 
     init();
 </script>

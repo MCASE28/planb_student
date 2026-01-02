@@ -46,6 +46,12 @@ class handler(BaseHTTPRequestHandler):
             station_info = data_station.get('station', {})
             nickname = station_info.get('user_nick', bj_id)
             
+            # 통계 정보 파싱
+            upd = station_info.get('upd', {})
+            fan_cnt = upd.get('fan_cnt', 0)
+            total_visit_cnt = upd.get('total_visit_cnt', 0)
+            today_visit_cnt = upd.get('today1_visit_cnt', 0)
+            
             profile_img = data_station.get('profile_image', '')
             if profile_img and profile_img.startswith('//'):
                 profile_img = 'https:' + profile_img
@@ -54,13 +60,14 @@ class handler(BaseHTTPRequestHandler):
             is_live = data_station.get('broad') is not None
 
             # 4. 데이터 수집 (VOD API 사용)
-            api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods"
+            api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods?page=1"
             res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
             data_vod = res_vod.json()
             
             vod_list = []
             if 'data' in data_vod:
-                for item in data_vod['data'][:10]: # 최근 10개
+                # 달력 채우기 위해 1페이지 데이터 전체 가져옴 (limit 제거)
+                for item in data_vod['data']: 
                     try:
                         title_no = item.get('title_no')
                         if not title_no: continue
@@ -72,25 +79,24 @@ class handler(BaseHTTPRequestHandler):
 
                         # 시간 처리 (초 단위 -> HH:MM:SS)
                         duration_sec = item.get('ucc', {}).get('total_file_duration', 0)
-                        # API가 주는 duration 단위가 초가 아닐 수 있음 (보통 밀리초거나 그냥 초)
-                        # 테스트 결과: 12139600 -> 매우 큼. 밀리초일 가능성 높음? 아니면 그냥 초?
-                        # 확인: 12139600 / 1000 = 12139초 = 약 3시간. (밀리초가 맞는 듯 보임)
-                        # 하지만 31053400 같은 값도 있음. 일단 초 단위로 변환
-                        # 아프리카 VOD duration은 보통 '초' 단위인데 값이 크다면 확인 필요.
-                        # -> API 응답 예시: 12139600. 이건 3시간 방송이면 10800초여야 함.
-                        # -> 따라서 12139600 은 밀리초(ms) 단위일 가능성이 매우 높음.
-                        
+                        # API duration은 밀리초(ms) 단위임
                         seconds = int(duration_sec) // 1000
+                        
                         h = seconds // 3600
                         m = (seconds % 3600) // 60
                         s = seconds % 60
                         duration_str = f"{h:02}:{m:02}:{s:02}" if h > 0 else f"{m:02}:{s:02}"
+
+                        # 조회수 (그래프용)
+                        read_cnt = item.get('count', {}).get('read_cnt', 0)
 
                         vod_list.append({
                             'title': item.get('title_name', ''),
                             'link': f"https://vod.afreecatv.com/player/{title_no}",
                             'thumb': thumb,
                             'duration': duration_str,
+                            'duration_sec': seconds, # 계산용 원본 초
+                            'read_cnt': read_cnt,
                             'date': item.get('reg_date', '').split(' ')[0] # 2025-12-30 형식
                         })
                     except Exception:
@@ -103,6 +109,9 @@ class handler(BaseHTTPRequestHandler):
                 'nickname': nickname,
                 'profile_img': profile_img,
                 'is_live': is_live,
+                'fan_cnt': fan_cnt,
+                'total_visit_cnt': total_visit_cnt,
+                'today_visit_cnt': today_visit_cnt,
                 'vods': vod_list
             }
             self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
