@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOOP Streamer Status</title>
+    <title>플랜비 지망생 현황판</title>
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -50,11 +50,11 @@
             width: 95%; max-width: 1200px; height: 90vh; 
             border-radius: 20px; position: relative; display: flex; flex-direction: column; 
             box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
-            overflow: hidden; /* 내부 스크롤 사용 */
+            overflow: hidden; 
         }
         .close { position: absolute; right: 25px; top: 20px; font-size: 30px; color: var(--text-sub); cursor: pointer; z-index: 10; }
         
-        /* Modal Header - CSS Fix Applied Here */
+        /* Modal Header */
         .modal-header { display: flex; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
         .modal-header > img { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; border: 2px solid #475569; }
         .modal-header h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
@@ -62,10 +62,10 @@
         .soop-link:hover { background: var(--accent); }
         .soop-icon { width: 16px !important; height: 16px !important; margin-right: 5px; border-radius: 4px; vertical-align: middle; }
 
-        /* Modal Body Grid (Left: Calendar, Right: Graphs) */
+        /* Modal Body Grid (Left: Calendar, Right: Graph) */
         .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
-        .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
-        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; }
+        .left-panel { flex: 1.2; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; } /* 달력 영역 확대 */
+        .right-panel { flex: 0.8; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 10px; }
 
         /* Calendar Styles */
         .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -89,7 +89,8 @@
         .day-time { font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-top: auto; margin-bottom: auto; }
 
         /* Graph Container */
-        .chart-container { background: #0f172a; padding: 15px; border-radius: 16px; flex: 1; min-height: 250px; }
+        .chart-container { background: #0f172a; padding: 15px; border-radius: 16px; flex: 1; min-height: 250px; display: flex; flex-direction: column;}
+        .chart-wrapper { flex: 1; position: relative; width: 100%; } /* 캔버스 감싸는 div */
         h3 { margin-top: 0; font-size: 1rem; color: var(--text-sub); margin-bottom: 10px; }
 
         footer { text-align: center; margin-top: 50px; color: var(--text-sub); font-size: 0.8rem; }
@@ -103,14 +104,14 @@
         @media (max-width: 900px) {
             .modal-body { flex-direction: column; overflow-y: auto; }
             .modal-content { height: auto; max-height: 90vh; }
-            .chart-container { min-height: 200px; }
+            .chart-container { min-height: 250px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>SOOP Streamer Status</h1>
+    <h1>플랜비 지망생 현황판</h1>
     
     <div id="streamer-list"></div>
     
@@ -143,13 +144,12 @@
             <!-- Right: Graphs -->
             <div class="right-panel">
                 <div class="chart-container">
-                    <h3>2026년 1월 1일 ~ 현재 방송 시간</h3>
-                    <canvas id="timeChart"></canvas>
+                    <h3 id="chartTitle">월간 방송 시간 추이</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="timeChart"></canvas>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <h3>2026년 1월 1일 ~ 현재 애청자 수</h3>
-                    <canvas id="viewChart"></canvas>
-                </div>
+                <!-- 애청자 그래프 삭제됨 -->
             </div>
         </div>
     </div>
@@ -157,23 +157,22 @@
 
 <script>
     const CONFIG = {
-        ids: ['likethis1125', 'gome02', 'moonightwmn', 'bluejin0129', 'uleharaaki'] 
+        ids: ['likethis1125', 'gome02', 'moonightwmn', 'bluejin0129', 'uleharaaki']
     };
 
     const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
-    const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; // SOOP 공식 파비콘
+    const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; 
 
     const MODAL = document.getElementById('infoModal');
     const STREAMER_DATA = {};
     
-    // 캘린더 상태 (2026년 기준)
+    // 캘린더 상태 (2026년 1월 기준 시작)
     let currentYear = 2026;
     let currentMonth = 1; 
     let currentStreamerId = null;
 
     // 차트 인스턴스
     let timeChartInstance = null;
-    let viewChartInstance = null;
 
     document.querySelector('.close').onclick = () => MODAL.style.display = "none";
     window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
@@ -228,23 +227,38 @@
         if (!data) return;
 
         currentStreamerId = id;
+        // 초기화: 오늘 날짜 기준으로 하되 2026년 1월로 고정할지, 실제 오늘로 할지?
+        // 요청: 2025.12 ~ 2026.02
+        // 현재 시점(2026.01.03)이라면 2026.01이 적절
+        const now = new Date();
         currentYear = 2026; 
         currentMonth = 1; 
 
-        // 1달(이번달 기준) 평균 방송 시간 계산
+        // 1달(현재 선택된 월) 평균 방송 시간 계산은 renderCalendar 내부 로직에서 처리하는게 나을 수도 있지만,
+        // 여기서는 모달 헤더 초기화를 위해 우선 1월 기준으로 계산
+        updateModalHeader(data, currentYear, currentMonth);
+
+        renderCalendar(); // 여기서 renderCharts도 함께 호출됨
+        
+        MODAL.style.display = "block";
+    }
+
+    function updateModalHeader(data, year, month) {
+        const header = document.getElementById('modalHeader');
+        const img = data.profile_img || DEFAULT_IMG;
+        
+        // 해당 월 평균 방송 시간 계산
         let totalDurationSec = 0;
         let count = 0;
-        const now = new Date(); // 2026-01-XX
-        const thisMonthPrefix = `2026-${String(now.getMonth()+1).padStart(2,'0')}`;
+        const monthPrefix = `${year}-${String(month).padStart(2,'0')}`;
         
         data.vods.forEach(v => {
-            if (v.date.startsWith(thisMonthPrefix)) {
+            if (v.date.startsWith(monthPrefix)) {
                 totalDurationSec += v.duration_sec || 0;
                 count++;
             }
         });
         
-        // 방송 1회당 평균 시간
         let avgTimeStr = "0분";
         if (count > 0) {
             const avgSec = totalDurationSec / count;
@@ -253,41 +267,52 @@
             avgTimeStr = h > 0 ? `${h}시간 ${m}분` : `${m}분`;
         }
 
-        // Header
-        const header = document.getElementById('modalHeader');
-        const img = data.profile_img || DEFAULT_IMG;
         header.innerHTML = `
             <img src="${img}">
             <div>
                 <h2>${data.nickname} 
-                    <a href="https://www.sooplive.co.kr/station/${id}" target="_blank" class="soop-link">
+                    <a href="https://www.sooplive.co.kr/station/${data.id}" target="_blank" class="soop-link">
                         <img src="${SOOP_ICON}" class="soop-icon" onerror="this.style.display='none'"> 방송국
                     </a>
                 </h2>
                 <p style="color:var(--text-sub); margin:5px 0 0 0">
-                    애청자 ${data.fan_cnt.toLocaleString()}명 · 1달 평균 방송시간 ${avgTimeStr}
+                    애청자 ${data.fan_cnt.toLocaleString()}명 · ${month}월 평균 방송시간 ${avgTimeStr}
                 </p>
             </div>
         `;
-
-        renderCalendar();
-        renderCharts(data.vods, data.fan_cnt);
-        
-        MODAL.style.display = "block";
     }
 
     function changeMonth(delta) {
-        currentMonth += delta;
-        if (currentMonth < 1) currentMonth = 1;
-        if (currentMonth > 2) currentMonth = 2;
+        // 날짜 연산
+        let newDate = new Date(currentYear, currentMonth - 1 + delta, 1);
+        let newYear = newDate.getFullYear();
+        let newMonth = newDate.getMonth() + 1;
+
+        // 범위 제한: 2025.12 ~ 2026.02
+        // 2025.11 이하면 제한
+        if (newYear < 2025 || (newYear === 2025 && newMonth < 12)) return;
+        // 2026.03 이상이면 제한
+        if (newYear > 2026 || (newYear === 2026 && newMonth > 2)) return;
+
+        currentYear = newYear;
+        currentMonth = newMonth;
+        
+        // 헤더 업데이트 (평균 시간 재계산)
+        if (currentStreamerId && STREAMER_DATA[currentStreamerId]) {
+            updateModalHeader(STREAMER_DATA[currentStreamerId], currentYear, currentMonth);
+        }
+
         renderCalendar();
     }
 
     function renderCalendar() {
         const title = document.getElementById('calTitle');
         const grid = document.getElementById('calendarGrid');
+        const chartTitle = document.getElementById('chartTitle');
         
         title.innerText = `${currentYear}. ${currentMonth}`;
+        chartTitle.innerText = `${currentYear}년 ${currentMonth}월 방송 시간`;
+
         grid.innerHTML = '';
 
         const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
@@ -304,6 +329,7 @@
         
         if(data && data.vods) {
             data.vods.forEach(v => {
+                // v.date = "2025-01-03"
                 if (!vodMap[v.date]) vodMap[v.date] = [];
                 vodMap[v.date].push(v);
             });
@@ -352,30 +378,33 @@
 
             grid.innerHTML += `<div class="${className}" ${onClick}>${content}</div>`;
         }
+
+        // 달력 렌더링 후 차트도 해당 월 데이터로 갱신
+        renderCharts(data.vods);
     }
 
     function updateWeekStat(currentDate, startDay, stats) {
         const statsDivs = document.getElementsByClassName('cal-week-stat');
         if (statsDivs.length > 0) {
             const lastStat = statsDivs[statsDivs.length - 1];
+            // 요청사항: "횟수, n.n시간" (일 평균으로 계산)
             const avg = stats.count > 0 ? (stats.totalSec / 3600 / stats.count).toFixed(1) : 0.0;
             lastStat.innerHTML = `<span>${stats.count}회</span><span style="color:#6ee7b7">${avg}h</span>`;
         }
     }
 
-    function renderCharts(vods, currentFanCnt) {
-        // 기준일: 2026-01-01 ~ 오늘 (2026-01-03)
+    function renderCharts(vods) {
+        // 현재 선택된 월(currentYear, currentMonth)의 1일 ~ 말일 데이터 표시
         const labels = [];
         const durationData = [];
-        const fanData = [];
 
-        const start = new Date('2026-01-01');
-        const end = new Date(); // 2026-01-03
+        const lastDayObj = new Date(currentYear, currentMonth, 0);
+        const totalDays = lastDayObj.getDate();
         
-        // 날짜 순회
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            const dateStr = d.toISOString().split('T')[0];
-            labels.push(dateStr.slice(5)); // "01-01"
+        // 날짜 순회 (1일 ~ 말일)
+        for (let d = 1; d <= totalDays; d++) {
+            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            labels.push(String(d)); // "1", "2" ... "31"
             
             // 방송 시간 집계
             let dayDuration = 0;
@@ -387,16 +416,13 @@
                 });
             }
             durationData.push(dayDuration);
-            
-            // 애청자 수 (변동 없음)
-            fanData.push(currentFanCnt);
         }
 
-        // 차트 파괴
-        if (timeChartInstance) timeChartInstance.destroy();
-        if (viewChartInstance) viewChartInstance.destroy();
+        // 차트 파괴 (메모리 누수 방지 및 애니메이션 리셋)
+        if (timeChartInstance) {
+            timeChartInstance.destroy();
+        }
 
-        // 1. 방송 시간 차트
         const ctx1 = document.getElementById('timeChart').getContext('2d');
         timeChartInstance = new Chart(ctx1, {
             type: 'line',
@@ -407,13 +433,16 @@
                     data: durationData,
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    tension: 0.3,
+                    tension: 0.1, // 선을 좀 더 직선에 가깝게 (변동폭 명확히)
                     fill: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 0 // 애니메이션 제거 (깜빡임 방지 및 즉시 렌더링)
+                },
                 plugins: { 
                     legend: { display: false },
                     tooltip: {
@@ -426,36 +455,6 @@
                 },
                 scales: {
                     y: { beginAtZero: true, grid: { color: '#334155' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-
-        // 2. 애청자 수 차트
-        const ctx2 = document.getElementById('viewChart').getContext('2d');
-        viewChartInstance = new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: '애청자 수',
-                    data: fanData,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                    tension: 0,
-                    fill: false,
-                    pointRadius: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { 
-                        beginAtZero: false, 
-                        grid: { color: '#334155' } 
-                    },
                     x: { grid: { display: false } }
                 }
             }
