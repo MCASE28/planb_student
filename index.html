@@ -469,7 +469,11 @@
                 plugins: { 
                     legend: { display: false },
                     tooltip: {
+                        displayColors: false,
                         callbacks: {
+                            title: function(context) {
+                                return context[0].label + '일';
+                            },
                             label: function(context) {
                                 return context.parsed.y.toFixed(1) + '시간'; 
                             }
@@ -477,8 +481,15 @@
                     }
                 },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#334155' } },
-                    x: { grid: { display: false } }
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: '#334155' },
+                        title: { display: true, text: '시간' }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        title: { display: true, text: '일' }
+                    }
                 }
             }
         });
