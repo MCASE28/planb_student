@@ -305,7 +305,7 @@
         let newYear = newDate.getFullYear();
         let newMonth = newDate.getMonth() + 1;
 
-        if (newYear < 2025 || (newYear === 2025 && newMonth < 10)) return;
+        if (newYear < 2025 || (newYear === 2025 && newMonth < 1)) return;
         if (newYear > 2026 || (newYear === 2026 && newMonth > 2)) return;
 
         currentYear = newYear;
