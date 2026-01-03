@@ -62,7 +62,8 @@ class handler(BaseHTTPRequestHandler):
             # 4. 데이터 수집 (VOD API 사용)
             vod_list = []
             for page in range(1, 6): # 1~5페이지까지 수집
-                api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods?page={page}"
+                # 다시보기(Review) 탭의 데이터만 가져오도록 URL 수정
+                api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods/review?page={page}"
                 res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
                 data_vod = res_vod.json()
                 
