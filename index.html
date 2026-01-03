@@ -352,7 +352,7 @@
             });
         }
 
-        let currentWeekStats = { count: 0, totalSec: 0 };
+        let currentWeekStats = { dayCount: 0, totalSec: 0 }; // count -> dayCount
 
         for (let i = 0; i < startDay; i++) {
             if (i === 0) grid.innerHTML += `<div class="cal-week-stat"></div>`;
@@ -361,11 +361,12 @@
 
         for (let d = 1; d <= totalDays; d++) {
             const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const simpleDateStr = `${currentYear}${String(currentMonth).padStart(2, '0')}${String(d).padStart(2, '0')}`;
             const vods = vodMap[dateStr];
             
             if ((startDay + d - 1) % 7 === 0) {
                 grid.innerHTML += `<div class="cal-week-stat"></div>`;
-                currentWeekStats = { count: 0, totalSec: 0 };
+                currentWeekStats = { dayCount: 0, totalSec: 0 };
             }
 
             let content = `<div class="day-num">${d}</div>`;
@@ -373,7 +374,9 @@
             if (currentYear === todayY && currentMonth === todayM && d === todayD) {
                 className += " is-today";
             }
-            let onClick = "";
+            
+            // 2. 셀 클릭 시 해당 날짜 필터링된 페이지 열기
+            let onClick = `onclick="window.open('https://www.sooplive.co.kr/station/${currentStreamerId}/vod/review?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}&sort=reg_date_asc', '_blank')"`;
 
             if (vods && vods.length > 0) {
                 className += " has-vod";
@@ -392,13 +395,11 @@
                     timeHtml += `<div>${tStr}</div>`;
                 });
 
-                const mainVod = vods[0]; 
-                currentWeekStats.count += vods.length;
+                currentWeekStats.dayCount += 1; // VOD 개수가 아니라 방송한 '날짜' 수 카운트
                 currentWeekStats.totalSec += totalSec;
                 updateWeekStat(currentWeekStats);
 
                 content += `<div class="day-time">${timeHtml}</div>`;
-                onClick = `onclick="window.open('${mainVod.link}', '_blank')"`;
             }
 
             grid.innerHTML += `<div class="${className}" ${onClick}>${content}</div>`;
@@ -411,8 +412,9 @@
         const statsDivs = document.getElementsByClassName('cal-week-stat');
         if (statsDivs.length > 0) {
             const lastStat = statsDivs[statsDivs.length - 1];
-            const avg = stats.count > 0 ? (stats.totalSec / 3600 / stats.count).toFixed(1) : 0.0;
-            lastStat.innerHTML = `<span>${stats.count}회</span><span style="color:#6ee7b7">평균 ${avg}h</span>`;
+            // 평균 시간은 총 시간을 방송 일수로 나눔
+            const avg = stats.dayCount > 0 ? (stats.totalSec / 3600 / stats.dayCount).toFixed(1) : 0.0;
+            lastStat.innerHTML = `<span>${stats.dayCount}회</span><span style="color:#6ee7b7">평균 ${avg}h</span>`;
         }
     }
 
