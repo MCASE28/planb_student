@@ -61,7 +61,14 @@ class handler(BaseHTTPRequestHandler):
 
             # 4. 데이터 수집 (VOD API 사용)
             vod_list = []
-            for page in range(1, 6): # 1~5페이지까지 수집
+            TARGET_START_DATE = "2025-09-01"
+            TARGET_END_DATE = "2026-02-28"
+            
+            stop_crawling = False
+            
+            for page in range(1, 21): # 넉넉하게 20페이지까지 탐색
+                if stop_crawling: break
+
                 # 다시보기(Review) 탭의 데이터만 가져오도록 URL 수정
                 api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods/review?page={page}"
                 res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
@@ -70,6 +77,17 @@ class handler(BaseHTTPRequestHandler):
                 if 'data' in data_vod and data_vod['data']:
                     for item in data_vod['data']: 
                         try:
+                            reg_date_full = item.get('reg_date', '')
+                            reg_date = reg_date_full.split(' ')[0] # 2025-12-30 형식
+                            
+                            # 날짜 필터링 로직
+                            if reg_date < TARGET_START_DATE:
+                                stop_crawling = True
+                                break # 루프 탈출
+                            
+                            if reg_date > TARGET_END_DATE:
+                                continue # 미래 데이터는 스킵
+
                             title_no = item.get('title_no')
                             if not title_no: continue
 
@@ -98,7 +116,7 @@ class handler(BaseHTTPRequestHandler):
                                 'duration': duration_str,
                                 'duration_sec': seconds, # 계산용 원본 초
                                 'read_cnt': read_cnt,
-                                'date': item.get('reg_date', '').split(' ')[0] # 2025-12-30 형식
+                                'date': reg_date
                             })
                         except Exception:
                             continue
