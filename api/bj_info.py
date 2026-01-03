@@ -60,47 +60,49 @@ class handler(BaseHTTPRequestHandler):
             is_live = data_station.get('broad') is not None
 
             # 4. 데이터 수집 (VOD API 사용)
-            api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods?page=1"
-            res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
-            data_vod = res_vod.json()
-            
             vod_list = []
-            if 'data' in data_vod:
-                # 달력 채우기 위해 1페이지 데이터 전체 가져옴 (limit 제거)
-                for item in data_vod['data']: 
-                    try:
-                        title_no = item.get('title_no')
-                        if not title_no: continue
+            for page in range(1, 6): # 1~5페이지까지 수집
+                api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods?page={page}"
+                res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
+                data_vod = res_vod.json()
+                
+                if 'data' in data_vod and data_vod['data']:
+                    for item in data_vod['data']: 
+                        try:
+                            title_no = item.get('title_no')
+                            if not title_no: continue
 
-                        # 썸네일 처리
-                        thumb = item.get('ucc', {}).get('thumb', '')
-                        if thumb and thumb.startswith('//'):
-                            thumb = 'https:' + thumb
+                            # 썸네일 처리
+                            thumb = item.get('ucc', {}).get('thumb', '')
+                            if thumb and thumb.startswith('//'):
+                                thumb = 'https:' + thumb
 
-                        # 시간 처리 (초 단위 -> HH:MM:SS)
-                        duration_sec = item.get('ucc', {}).get('total_file_duration', 0)
-                        # API duration은 밀리초(ms) 단위임
-                        seconds = int(duration_sec) // 1000
-                        
-                        h = seconds // 3600
-                        m = (seconds % 3600) // 60
-                        s = seconds % 60
-                        duration_str = f"{h:02}:{m:02}:{s:02}" if h > 0 else f"{m:02}:{s:02}"
+                            # 시간 처리 (초 단위 -> HH:MM:SS)
+                            duration_sec = item.get('ucc', {}).get('total_file_duration', 0)
+                            # API duration은 밀리초(ms) 단위임
+                            seconds = int(duration_sec) // 1000
+                            
+                            h = seconds // 3600
+                            m = (seconds % 3600) // 60
+                            s = seconds % 60
+                            duration_str = f"{h:02}:{m:02}:{s:02}" if h > 0 else f"{m:02}:{s:02}"
 
-                        # 조회수 (그래프용)
-                        read_cnt = item.get('count', {}).get('read_cnt', 0)
+                            # 조회수 (그래프용)
+                            read_cnt = item.get('count', {}).get('read_cnt', 0)
 
-                        vod_list.append({
-                            'title': item.get('title_name', ''),
-                            'link': f"https://vod.afreecatv.com/player/{title_no}",
-                            'thumb': thumb,
-                            'duration': duration_str,
-                            'duration_sec': seconds, # 계산용 원본 초
-                            'read_cnt': read_cnt,
-                            'date': item.get('reg_date', '').split(' ')[0] # 2025-12-30 형식
-                        })
-                    except Exception:
-                        continue
+                            vod_list.append({
+                                'title': item.get('title_name', ''),
+                                'link': f"https://vod.afreecatv.com/player/{title_no}",
+                                'thumb': thumb,
+                                'duration': duration_str,
+                                'duration_sec': seconds, # 계산용 원본 초
+                                'read_cnt': read_cnt,
+                                'date': item.get('reg_date', '').split(' ')[0] # 2025-12-30 형식
+                            })
+                        except Exception:
+                            continue
+                else:
+                    break # 데이터가 없으면 루프 종료
 
             # 5. 결과 반환
             result = {
