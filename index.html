@@ -375,12 +375,15 @@
                 className += " is-today";
             }
             
-            // 2. 셀 클릭 시 해당 날짜 필터링된 페이지 열기
-            let onClick = `onclick="window.open('https://www.sooplive.co.kr/station/${currentStreamerId}/vod/review?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}&sort=reg_date_asc', '_blank')"`;
-
+            // 셀 클릭 시 링크 설정 (기본은 게시판 검색, VOD가 있으면 다시보기 검색)
+            let targetUrl = `https://www.sooplive.co.kr/station/${currentStreamerId}/board?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}`;
+            
             if (vods && vods.length > 0) {
                 className += " has-vod";
                 if (vods.length > 1) className += " multi-vod";
+                
+                // 다시보기(Review) 검색 링크로 교체
+                targetUrl = `https://www.sooplive.co.kr/station/${currentStreamerId}/vod/review?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}&sort=reg_date_asc`;
 
                 let totalSec = 0;
                 let timeHtml = ""; 
@@ -402,7 +405,7 @@
                 content += `<div class="day-time">${timeHtml}</div>`;
             }
 
-            grid.innerHTML += `<div class="${className}" ${onClick}>${content}</div>`;
+            grid.innerHTML += `<div class="${className}" onclick="window.open('${targetUrl}', '_blank')">${content}</div>`;
         }
 
         renderCharts(data.vods);
