@@ -327,6 +327,13 @@
             avgTimeStr = h > 0 ? `${h}시간 ${m}분` : `${m}분`;
         }
 
+        // Format station open date (YYYY-MM-DD HH:mm:ss -> YYYY.MM.DD)
+        let openDateStr = "";
+        if (data.station_open_date) {
+            const datePart = data.station_open_date.split(' ')[0];
+            openDateStr = datePart.replace(/-/g, '.');
+        }
+
         header.innerHTML = `
             <img src="${img}">
             <div>
@@ -336,7 +343,9 @@
                     </a>
                 </h2>
                 <p style="color:var(--text-sub); margin:5px 0 0 0">
-                    애청자 ${data.fan_cnt.toLocaleString()}명 · ${month}월 평균 방송시간 <b style="color:#fff">${avgTimeStr}</b>
+                    <span title="방송국 개설일">방송국 개설일: ${openDateStr}</span> <span style="margin:0 5px">/</span>
+                    애청자 ${data.fan_cnt.toLocaleString()}명 <span style="margin:0 5px">/</span>
+                    ${month}월 평균 방송시간 <b style="color:#fff">${avgTimeStr}</b>
                 </p>
             </div>
         `;

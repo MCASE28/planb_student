@@ -45,6 +45,7 @@ class handler(BaseHTTPRequestHandler):
             # 기본 정보 파싱
             station_info = data_station.get('station', {})
             nickname = station_info.get('user_nick', bj_id)
+            station_open_date = station_info.get('jointime', '') # 방송국 개설일 (최초 방송일로 간주)
             
             # 통계 정보 파싱
             upd = station_info.get('upd', {})
@@ -129,6 +130,7 @@ class handler(BaseHTTPRequestHandler):
                 'id': bj_id,
                 'nickname': nickname,
                 'profile_img': profile_img,
+                'station_open_date': station_open_date,
                 'is_live': is_live,
                 'fan_cnt': fan_cnt,
                 'total_visit_cnt': total_visit_cnt,
