@@ -194,7 +194,7 @@
             'gome02', // 밤문
             'likethis1125', // 도페
             'pinra00', // 핀라
-            'zzeogoo'
+            'zzeogoo' // 햄쩌구
         ]
     };
 
@@ -220,7 +220,7 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.id = `card-${id}`;
-            card.innerHTML = `<div class="loading" style="color:#94a3b8">Loading...</div>`;
+            card.innerHTML = `<div class="loading" style="color:#94a3b8; font-size:0.9rem">데이터 요청 중...</div>`;
             listContainer.appendChild(card);
         });
 
@@ -230,8 +230,35 @@
 
     async function fetchStreamerData(id) {
         const card = document.getElementById(`card-${id}`);
+        const loadingDiv = card.querySelector('.loading');
+        
+        // Loading animation messages
+        const msgs = [
+            "방송국 연결 중...",
+            "정보 수신 중...",
+            "VOD 목록 조회...",
+            "데이터 분석 중...",
+            "마무리 정리 중..."
+        ];
+        let step = 0;
+        
+        const timer = setInterval(() => {
+            if (loadingDiv) {
+                step++;
+                if (step < msgs.length) {
+                    loadingDiv.innerText = msgs[step];
+                } else {
+                    // Cycle dots for the last message if it takes too long
+                    const dots = ".".repeat((step % 3) + 1);
+                    loadingDiv.innerText = "마무리 정리 중" + dots;
+                }
+            }
+        }, 800);
+
         try {
             const response = await fetch(`/api/bj_info?id=${id}`);
+            clearInterval(timer);
+
             if (!response.ok) throw new Error('Net err');
             const data = await response.json();
             
@@ -252,6 +279,7 @@
             card.onclick = () => openModal(id);
 
         } catch (err) {
+            clearInterval(timer);
             console.error(err);
             card.innerHTML = `<div class="info"><p style="color:var(--live)">Load Failed</p></div>`;
         }
