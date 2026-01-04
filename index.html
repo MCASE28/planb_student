@@ -253,10 +253,16 @@
                     loadingDiv.innerText = "마무리 정리 중" + dots;
                 }
             }
-        }, 800);
+        }, 250);
 
         try {
-            const response = await fetch(`/api/bj_info?id=${id}`);
+            // Enforce a minimum display time for the loading animation (1.5s)
+            // This ensures users see the progress steps even if the API is fast
+            const minLoadTime = new Promise(resolve => setTimeout(resolve, 1500));
+            const fetchReq = fetch(`/api/bj_info?id=${id}`);
+
+            const [_, response] = await Promise.all([minLoadTime, fetchReq]);
+            
             clearInterval(timer);
 
             if (!response.ok) throw new Error('Net err');
