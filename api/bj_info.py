@@ -142,3 +142,4 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             error_response = {'success': False, 'message': str(e)}
             self.wfile.write(json.dumps(error_response).encode('utf-8'))
+
