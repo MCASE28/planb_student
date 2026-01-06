@@ -156,6 +156,17 @@
             height: 15px;
             border-radius: 6px;
         }
+
+        /* Social Links in Card */
+        .social-links { display: flex; gap: 8px; margin-top: 8px; }
+        .social-btn { 
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 50%; 
+            background: #334155; border: 1px solid #475569; 
+            transition: all 0.2s; text-decoration: none;
+        }
+        .social-btn:hover { background: #475569; transform: scale(1.1); border-color: var(--text-sub); }
+        .social-btn img { width: 16px; height: 16px; border-radius: 0 !important; border: none !important; margin: 0 !important; }
     </style>
 </head>
 <body>
@@ -230,7 +241,8 @@
             'zzeogoo', // 햄쩌구
             'lottobebe', // 로또비
             'dougie0328', // 올어바웃설이
-            'doheezzan' //도히짠
+            'doheezzan', //도히짠
+            'dlsvhwk00' // 싴련
         ]
     };
 
@@ -309,12 +321,31 @@
             const name = data.nickname || id;
             const img = data.profile_img || DEFAULT_IMG;
             const isLive = data.is_live;
+            
+            // 소셜 링크 버튼 생성
+            let socialHtml = '<div class="social-links">';
+            if (data.social_links) {
+                if (data.social_links.youtube) {
+                    socialHtml += `
+                        <a href="${data.social_links.youtube}" target="_blank" class="social-btn" onclick="event.stopPropagation()" title="유튜브">
+                            <img src="https://www.youtube.com/favicon.ico" alt="YouTube">
+                        </a>`;
+                }
+                if (data.social_links.cafe) {
+                    socialHtml += `
+                        <a href="${data.social_links.cafe}" target="_blank" class="social-btn" onclick="event.stopPropagation()" title="카페">
+                            <img src="https://cafe.naver.com/favicon.ico" alt="Cafe">
+                        </a>`;
+                }
+            }
+            socialHtml += '</div>';
 
             card.innerHTML = `
                 <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
                 <div class="info">
                     <h3>${name} <span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></h3>
-                    <p style="font-size:0.85rem; color:var(--text-sub);">@${id}</p>
+                    <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">@${id}</p>
+                    ${socialHtml}
                 </div>
             `;
             

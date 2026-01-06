@@ -60,6 +60,26 @@ class handler(BaseHTTPRequestHandler):
             # 방송 중 여부 ('broad' 필드가 null이면 오프라인, 객체면 방송 중)
             is_live = data_station.get('broad') is not None
 
+            # 소셜 링크 크롤링 (PC 페이지 파싱)
+            social_links = {'youtube': None, 'cafe': None}
+            try:
+                res_pc = requests.get(station_url, headers=headers, timeout=3)
+                if res_pc.status_code == 200:
+                    soup = BeautifulSoup(res_pc.text, 'html.parser')
+                    
+                    # 유튜브 링크 찾기
+                    yt_link = soup.select_one('a[href*="youtube.com"], a[href*="youtu.be"]')
+                    if yt_link:
+                        social_links['youtube'] = yt_link['href']
+                        
+                    # 카페 링크 찾기
+                    cafe_link = soup.select_one('a[href*="cafe.naver.com"]')
+                    if cafe_link:
+                        social_links['cafe'] = cafe_link['href']
+            except Exception as e:
+                # 소셜 링크 크롤링 실패시 로그만 남기거나 무시 (전체 로직에 영향 없도록)
+                print(f"Error crawling social links for {bj_id}: {e}")
+
             # 4. 데이터 수집 (VOD API 사용)
             vod_list = []
             TARGET_START_DATE = "2025-09-01"
@@ -135,6 +155,7 @@ class handler(BaseHTTPRequestHandler):
                 'fan_cnt': fan_cnt,
                 'total_visit_cnt': total_visit_cnt,
                 'today_visit_cnt': today_visit_cnt,
+                'social_links': social_links,
                 'vods': vod_list
             }
             self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
