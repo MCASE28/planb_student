@@ -35,11 +35,13 @@
             cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; 
         }
         .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-color: var(--accent); }
+        .card.novice { border-color: #86efac; border-width: 1px; }
         .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #475569; }
         
         .info h3 { margin: 0 0 5px 0; font-size: 1.1rem; display: flex; align-items: center; justify-content: space-between; }
         .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #475569; color: #cbd5e1; }
         .status-badge.live { background-color: var(--live); color: white; animation: pulse 2s infinite; }
+        .novice-badge { font-size: 0.75rem; margin-right: 5px; color: #86efac; font-weight: bold; }
         
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
@@ -238,8 +240,8 @@
             'whitesora', //백소라
             'zzeogoo', // 햄쩌구
             'doheezzan', //도히짠
-            'seri1100' // 몽세리
-            
+            'seri1100', // 몽세리
+            'dlsvhwk00' // 싴련
 
         ]
     };
@@ -319,6 +321,14 @@
             const name = data.nickname || id;
             const img = data.profile_img || DEFAULT_IMG;
             const isLive = data.is_live;
+            const fanCnt = data.fan_cnt || 0;
+            const isNovice = fanCnt < 300;
+
+            if (isNovice) {
+                card.classList.add('novice');
+            } else {
+                card.classList.remove('novice');
+            }
             
             // 소셜 링크 버튼 생성
             let socialHtml = '<div class="social-links">';
@@ -338,11 +348,13 @@
             }
             socialHtml += '</div>';
 
+            const noviceHtml = isNovice ? `<span class="novice-badge">🌱 희망생</span>` : '';
+
             card.innerHTML = `
                 <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
                 <div class="info">
-                    <h3>${name} <span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></h3>
-                    <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">@${id}</p>
+                    <h3>${name} <div>${noviceHtml}<span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></div></h3>
+                    <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">@${id} · 애청자수: ${fanCnt.toLocaleString()}</p>
                     ${socialHtml}
                 </div>
             `;
