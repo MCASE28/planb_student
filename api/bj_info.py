@@ -10,6 +10,7 @@ class handler(BaseHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         params = parse_qs(parsed_path.query)
         bj_id = params.get('id', [None])[0]
+        mode = params.get('mode', ['full'])[0] # 'basic' or 'full' (default)
 
         # 헤더 설정 (CORS 허용)
         self.send_response(200)
@@ -27,9 +28,7 @@ class handler(BaseHTTPRequestHandler):
             # 모바일 페이지가 데이터 구조가 단순하여 크롤링에 유리한 경우가 많음
             # 메인 스테이션 (라이브 여부, 프로필)
             station_url = f"https://bj.afreecatv.com/{bj_id}"
-            # 다시보기 목록 (PC 웹 페이지 활용)
-            vod_url = f"https://bj.afreecatv.com/{bj_id}/vods"
-
+            
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Referer': 'https://bj.afreecatv.com/'
@@ -44,7 +43,7 @@ class handler(BaseHTTPRequestHandler):
             # 기본 정보 파싱
             station_info = data_station.get('station', {})
             nickname = station_info.get('user_nick', bj_id)
-            station_open_date = station_info.get('jointime', '') # 방송국 개설일 (최초 방송일로 간주)
+            station_open_date = station_info.get('jointime', '') # 방송국 개설일
             
             # 통계 정보 파싱
             upd = station_info.get('upd', {})
@@ -59,7 +58,23 @@ class handler(BaseHTTPRequestHandler):
             # 방송 중 여부 ('broad' 필드가 null이면 오프라인, 객체면 방송 중)
             is_live = data_station.get('broad') is not None
 
-            # 4. 데이터 수집 (VOD API 사용)
+            # 4. 모드에 따른 분기 처리
+            if mode == 'basic':
+                result = {
+                    'success': True,
+                    'id': bj_id,
+                    'nickname': nickname,
+                    'profile_img': profile_img,
+                    'is_live': is_live,
+                    'fan_cnt': fan_cnt,
+                    # basic 모드에서는 vods나 기타 무거운 정보 제외
+                }
+                self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+                return
+
+            # --- 이하 VOD 수집 로직 (mode != 'basic' 일 때만 실행) ---
+
+            # 다시보기 목록 (PC 웹 페이지 활용)
             vod_list = []
             TARGET_START_DATE = "2025-09-01"
             TARGET_END_DATE = "2026-02-28"
@@ -71,8 +86,13 @@ class handler(BaseHTTPRequestHandler):
 
                 # 다시보기(Review) 탭의 데이터만 가져오도록 URL 수정
                 api_vod_url = f"https://bjapi.afreecatv.com/api/{bj_id}/vods/review?page={page}"
-                res_vod = requests.get(api_vod_url, headers=headers, timeout=5)
-                data_vod = res_vod.json()
+                
+                try:
+                    res_vod = requests.get(api_vod_url, headers=headers, timeout=10)
+                    data_vod = res_vod.json()
+                except Exception:
+                    # 에러 발생 시 수집된 데이타까지만 반환
+                    break
                 
                 if 'data' in data_vod and data_vod['data']:
                     for item in data_vod['data']: 

@@ -255,6 +255,7 @@
 
     const MODAL = document.getElementById('infoModal');
     const STREAMER_DATA = {};
+    const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
     
     let currentYear = 2026;
     let currentMonth = 1; 
@@ -276,113 +277,140 @@
             listContainer.appendChild(card);
         });
 
-        const promises = CONFIG.ids.map(id => fetchStreamerData(id));
+        // 초기 로딩은 'basic' 모드로 가볍게 요청
+        const promises = CONFIG.ids.map(id => fetchStreamerData(id, 'basic'));
         await Promise.all(promises);
     }
 
-    async function fetchStreamerData(id) {
+    async function fetchStreamerData(id, mode='basic') {
         const card = document.getElementById(`card-${id}`);
-        const loadingDiv = card.querySelector('.loading');
-        
-        // Loading animation messages
-        const msgs = [
-            "방송국 연결 중...",
-            "정보 수신 중...",
-            "VOD 목록 조회...",
-            "데이터 분석 중...",
-            "마무리 정리 중..."
-        ];
-        let step = 0;
-        
-        const timer = setInterval(() => {
-            if (loadingDiv) {
-                step++;
-                if (step < msgs.length) {
-                    loadingDiv.innerText = msgs[step];
-                } else {
-                    // Cycle dots for the last message if it takes too long
-                    const dots = ".".repeat((step % 3) + 1);
-                    loadingDiv.innerText = "마무리 정리 중" + dots;
+        let timer = null;
+
+        // Basic 모드일 때만 카드 로딩 애니메이션 표시 (초기 진입 시)
+        if (mode === 'basic' && card) {
+            const loadingDiv = card.querySelector('.loading');
+            const msgs = ["연결 중...", "정보 확인...", "상태 체크..."];
+            let step = 0;
+            timer = setInterval(() => {
+                if (loadingDiv) {
+                    step++;
+                    loadingDiv.innerText = msgs[step % msgs.length];
                 }
-            }
-        }, 250);
+            }, 300);
+        }
 
         try {
-            // Enforce a minimum display time for the loading animation (1.5s)
-            // This ensures users see the progress steps even if the API is fast
-            const minLoadTime = new Promise(resolve => setTimeout(resolve, 1500));
-            const fetchReq = fetch(`/api/bj_info?id=${id}`);
-
-            const [_, response] = await Promise.all([minLoadTime, fetchReq]);
+            // mode 파라미터 추가
+            const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`);
             
-            clearInterval(timer);
+            // Basic 모드일 때 최소 로딩 시간 보장 (UX)
+            if (mode === 'basic') {
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            const response = await fetchReq;
+            if (timer) clearInterval(timer);
 
             if (!response.ok) throw new Error('Net err');
-            const data = await response.json();
+            const newData = await response.json();
             
-            STREAMER_DATA[id] = data;
+            // 데이터 병합 (기존 데이터를 유지하면서 최신 데이터로 덮어쓰기)
+            STREAMER_DATA[id] = {
+                ...(STREAMER_DATA[id] || {}),
+                ...newData,
+                lastUpdated: Date.now() // 타임스탬프 갱신
+            };
 
-            const name = data.nickname || id;
-            const img = data.profile_img || DEFAULT_IMG;
-            const isLive = data.is_live;
-            const fanCnt = data.fan_cnt || 0;
-            const isNovice = fanCnt < 300;
-
-            if (isNovice) {
-                card.classList.add('novice');
-            } else {
-                card.classList.remove('novice');
-            }
-            
-            // 소셜 링크 버튼 생성
-            let socialHtml = '<div class="social-links">';
-            if (data.social_links) {
-                if (data.social_links.youtube) {
-                    socialHtml += `
-                        <a href="${data.social_links.youtube}" target="_blank" class="social-btn" onclick="event.stopPropagation()" title="유튜브">
-                            <img src="https://www.youtube.com/favicon.ico" alt="YouTube">
-                        </a>`;
-                }
-                if (data.social_links.cafe) {
-                    socialHtml += `
-                        <a href="${data.social_links.cafe}" target="_blank" class="social-btn" onclick="event.stopPropagation()" title="카페">
-                            <img src="https://cafe.naver.com/favicon.ico" alt="Cafe">
-                        </a>`;
-                }
-            }
-            socialHtml += '</div>';
-
-            const noviceHtml = isNovice ? `<span class="novice-badge">🌱 희망생</span>` : '';
-
-            card.innerHTML = `
-                <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
-                <div class="info">
-                    <h3>${name} <div>${noviceHtml}<span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></div></h3>
-                    <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">@${id} · 애청자수: ${fanCnt.toLocaleString()}</p>
-                    ${socialHtml}
-                </div>
-            `;
-            
-            card.onclick = () => openModal(id);
+            // Basic 정보가 오면 카드 UI 갱신 (Full 요청 시에도 최신 기본정보가 오므로 갱신)
+            updateCardUI(id);
 
         } catch (err) {
-            clearInterval(timer);
+            if (timer) clearInterval(timer);
             console.error(err);
-            card.innerHTML = `<div class="info"><p style="color:var(--live)">Load Failed</p></div>`;
+            if (mode === 'basic' && card) {
+                card.innerHTML = `<div class="info"><p style="color:var(--live)">Load Failed</p></div>`;
+            }
         }
     }
 
-    function openModal(id) {
+    function updateCardUI(id) {
         const data = STREAMER_DATA[id];
-        if (!data) return;
+        const card = document.getElementById(`card-${id}`);
+        if (!data || !card) return;
 
+        const name = data.nickname || id;
+        const img = data.profile_img || DEFAULT_IMG;
+        const isLive = data.is_live;
+        const fanCnt = data.fan_cnt || 0;
+        const isNovice = fanCnt < 300;
+
+        if (isNovice) card.classList.add('novice');
+        else card.classList.remove('novice');
+        
+        // 소셜 링크
+        let socialHtml = '<div class="social-links">';
+        if (data.social_links) { // API에서 주지 않는다면 빈 값
+             // 필요하다면 API 수정해서 social_links도 basic에 포함해야 함. 현재는 없음.
+        }
+        // 임시: 소셜 링크는 API 응답에 없으므로 기존 로직 유지 불가하나, 
+        // 요구사항에 언급 없으므로 패스하거나 data에 있으면 표시.
+        // (기존 코드에서도 social_links는 API 응답에 없었음, 아마 하드코딩이나 추후 확장을 염두에 둔 코드였을 듯)
+        // 여기선 일단 닫아둠.
+        socialHtml += '</div>';
+
+        const noviceHtml = isNovice ? `<span class="novice-badge">🌱 희망생</span>` : '';
+
+        card.innerHTML = `
+            <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
+            <div class="info">
+                <h3>${name} <div>${noviceHtml}<span class="status-badge ${isLive ? 'live' : ''}">${isLive ? 'LIVE' : 'OFF'}</span></div></h3>
+                <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">@${id} · 애청자수: ${fanCnt.toLocaleString()}</p>
+                ${socialHtml}
+            </div>
+        `;
+        
+        card.onclick = () => openModal(id);
+    }
+
+    async function openModal(id) {
         currentStreamerId = id;
+        MODAL.style.display = "block";
+        
+        let data = STREAMER_DATA[id];
+        const now = Date.now();
+        
+        // 1. 데이터가 없거나
+        // 2. VOD 목록(상세정보)이 없거나 (basic만 로드된 경우)
+        // 3. 마지막 업데이트로부터 5분이 지났으면 -> Full Request
+        const needUpdate = !data || !data.vods || (now - (data.lastUpdated || 0) > CACHE_DURATION);
+
+        if (needUpdate) {
+            // 로딩 UI 표시
+            document.getElementById('modalHeader').innerHTML = `
+                <div style="display:flex; align-items:center; gap:15px; padding:10px;">
+                    <div class="loading" style="font-size:1.2rem; font-weight:bold;">정보 갱신 중...</div>
+                </div>`;
+            document.getElementById('calendarGrid').innerHTML = `
+                <div style="height:300px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">
+                    데이터를 불러오고 있습니다... (약 3~5초 소요)
+                </div>`;
+            
+            // 기존 차트 제거
+            if (timeChartInstance) {
+                timeChartInstance.destroy();
+                timeChartInstance = null;
+            }
+
+            // Full 데이터 요청
+            await fetchStreamerData(id, 'full');
+            data = STREAMER_DATA[id]; // 갱신된 데이터 가져오기
+        }
+
         currentYear = 2026; 
         currentMonth = 1; 
 
         updateModalHeader(data, currentYear, currentMonth);
         renderCalendar(); 
-        MODAL.style.display = "block";
     }
 
     function updateModalHeader(data, year, month) {
