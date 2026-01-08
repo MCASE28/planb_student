@@ -393,12 +393,14 @@
         let count = 0;
         const monthPrefix = `${year}-${String(month).padStart(2,'0')}`;
         
-        data.vods.forEach(v => {
-            if (v.date.startsWith(monthPrefix)) {
-                totalDurationSec += v.duration_sec || 0;
-                count++;
-            }
-        });
+        if (data.vods) {
+            data.vods.forEach(v => {
+                if (v.date.startsWith(monthPrefix)) {
+                    totalDurationSec += v.duration_sec || 0;
+                    count++;
+                }
+            });
+        }
         
         let avgTimeStr = "0분";
         if (count > 0) {
