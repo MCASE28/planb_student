@@ -169,6 +169,24 @@
         }
         .social-btn:hover { background: #475569; transform: scale(1.1); border-color: var(--text-sub); }
         .social-btn img { width: 16px; height: 16px; border-radius: 0 !important; border: none !important; margin: 0 !important; }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30, 41, 59, 0.7); /* card-bg with opacity */
+            backdrop-filter: blur(5px);
+            z-index: 50; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 20px;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #334155; border-top: 4px solid var(--accent);
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-size: 1.1rem; color: var(--text-main); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -197,6 +215,12 @@
 <!-- Modal -->
 <div id="infoModal" class="modal">
     <div class="modal-content">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <div class="loading-text">데이터 불러오는 중...</div>
+        </div>
+
         <span class="close">&times;</span>
         <div id="modalHeader" class="modal-header"></div>
         <div class="modal-body">
@@ -254,6 +278,7 @@
     const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; 
 
     const MODAL = document.getElementById('infoModal');
+    const LOADING_OVERLAY = document.getElementById('loadingOverlay');
     const STREAMER_DATA = {};
     const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
     
@@ -374,6 +399,13 @@
 
     async function openModal(id) {
         currentStreamerId = id;
+        currentYear = 2026; 
+        currentMonth = 1; 
+
+        // 0. 초기화: 모달 내용을 비우거나 기본값으로 설정
+        resetModalContent();
+
+        // 1. 모달 표시
         MODAL.style.display = "block";
         
         let data = STREAMER_DATA[id];
@@ -385,32 +417,64 @@
         const needUpdate = !data || !data.vods || (now - (data.lastUpdated || 0) > CACHE_DURATION);
 
         if (needUpdate) {
-            // 로딩 UI 표시
-            document.getElementById('modalHeader').innerHTML = `
-                <div style="display:flex; align-items:center; gap:15px; padding:10px;">
-                    <div class="loading" style="font-size:1.2rem; font-weight:bold;">정보 갱신 중...</div>
-                </div>`;
-            document.getElementById('calendarGrid').innerHTML = `
-                <div style="height:300px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">
-                    데이터를 불러오고 있습니다... (약 3~5초 소요)
-                </div>`;
-            
-            // 기존 차트 제거
-            if (timeChartInstance) {
-                timeChartInstance.destroy();
-                timeChartInstance = null;
-            }
+            // 로딩 UI 표시 (오버레이 활성화)
+            LOADING_OVERLAY.classList.add('active');
 
             // Full 데이터 요청
             await fetchStreamerData(id, 'full');
             data = STREAMER_DATA[id]; // 갱신된 데이터 가져오기
-        }
 
-        currentYear = 2026; 
-        currentMonth = 1; 
+            // 로딩 종료
+            LOADING_OVERLAY.classList.remove('active');
+        }
 
         updateModalHeader(data, currentYear, currentMonth);
         renderCalendar(); 
+    }
+
+    // 모달 초기화: 빈 캘린더, 빈 그래프, 기본 헤더 등
+    function resetModalContent() {
+        // 헤더 초기화
+        const data = STREAMER_DATA[currentStreamerId] || { nickname: currentStreamerId, fan_cnt: 0 };
+        const img = data.profile_img || DEFAULT_IMG;
+        
+        // Header는 기본 정보(이미지, 닉네임)가 있다면 그걸로 세팅, 없으면 기본값
+        // 여기선 fan_cnt 등을 보여주기보단 로딩중 느낌을 위해 최소화
+        document.getElementById('modalHeader').innerHTML = `
+            <img src="${img}">
+            <div>
+                <h2>${data.nickname}</h2>
+                <p style="color:var(--text-sub); margin:5px 0 0 0;">정보를 불러오는 중입니다...</p>
+            </div>
+        `;
+
+        // 캘린더 초기화 (빈 그리드)
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
+        days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
+        // 대략적인 빈 칸 (로딩 중 모양 유지)
+        for(let i=0; i<35; i++) grid.innerHTML += `<div class="cal-day empty" style="border:1px dashed #334155; opacity:0.3;"></div>`;
+
+        // 그래프 초기화
+        if (timeChartInstance) {
+            timeChartInstance.destroy();
+            timeChartInstance = null;
+        }
+        // 빈 그래프 생성 (축만 보이게)
+        const ctx1 = document.getElementById('timeChart').getContext('2d');
+        timeChartInstance = new Chart(ctx1, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
     }
 
     function updateModalHeader(data, year, month) {
