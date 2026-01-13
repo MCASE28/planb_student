@@ -38,7 +38,22 @@
         .card.novice { border-color: #86efac; border-width: 1px; }
         .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #475569; }
         
-        .info h3 { margin: 0 0 5px 0; font-size: 1.1rem; display: flex; align-items: center; justify-content: space-between; }
+        .info { display: flex; flex-direction: column; width: 100%; gap: 2px; }
+        .info-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+        .info-header h3 { margin: 0; font-size: 1.1rem; }
+        .info-id { font-size: 0.85rem; color: var(--text-sub); }
+        .info-fan { font-size: 0.85rem; color: var(--text-sub); }
+        
+        .post-link { 
+            display: inline-flex; align-items: center; gap: 6px; 
+            margin-top: 8px; font-size: 0.85rem; 
+            color: var(--text-main); text-decoration: none; 
+            background: #334155; padding: 5px 10px; border-radius: 8px; 
+            width: fit-content; transition: background 0.2s;
+        }
+        .post-link:hover { background: var(--accent); }
+        .post-link img { width: 14px !important; height: 14px !important; border: none !important; margin: 0 !important; border-radius: 0 !important; }
+
         .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #475569; color: #cbd5e1; }
         .status-badge.live { background-color: var(--live); color: white; animation: pulse 2s infinite; }
         .novice-badge { font-size: 0.75rem; margin-right: 5px; color: #86efac; font-weight: bold; }
@@ -258,24 +273,22 @@
 <script>
     const CONFIG = {
         ids: [
-            'bluejin0129', // 지오
-            'moonightwmn', // 백월야
-            'gome02', // 밤문
-            'likethis1125', // 도페
-            'whitesora', //백소라
-            'zzeogoo', // 햄쩌구
-            'pinra00', // 핀라
-            'doheezzan', //도히짠
-            'seri1100', // 몽세리
-            'dlsvhwk00', // 싴련
-            'whtndus0830', // 쪼아나
-            'jang1109', //미라드
-            'reaper7862', //rp7
-            'marihema', //마리히
-            'somnnya', //김솜냐
-            'runna11' //룬나
-
-
+            'bluejin0129,178387', // 지오
+            'moonightwmn,178465', // 백월야
+            'gome02,178469', // 밤문
+            'likethis1125,178530', // 도페
+            'pinra00,178729', // 핀라
+            'whitesora,178972', //백소라
+            'jang1109,179242', //미라드
+            'zzeogoo,179313', // 햄쩌구
+            'doheezzan,179888', //도히짠
+            'reaper7862,180188', //rp7
+            'dlsvhwk00,180222', // 싴련
+            'seri1100,181092', // 몽세리
+            'whtndus0830,181159', // 쪼아나
+            'marihema,182596', //마리히
+            'somnnya,182631', //김솜냐
+            'runna11,184323' //룬나
         ]
     };
 
@@ -299,7 +312,11 @@
         const listContainer = document.getElementById('streamer-list');
         listContainer.innerHTML = '';
 
-        CONFIG.ids.forEach(id => {
+        CONFIG.ids.forEach(entry => {
+            const [id, postId] = entry.split(',');
+            // 초기 데이터에 게시글 번호 저장
+            STREAMER_DATA[id] = { postId: postId || '0' };
+
             const card = document.createElement('div');
             card.className = 'card';
             card.id = `card-${id}`;
@@ -308,7 +325,10 @@
         });
 
         // 초기 로딩은 'basic' 모드로 가볍게 요청
-        const promises = CONFIG.ids.map(id => fetchStreamerData(id, 'basic'));
+        const promises = CONFIG.ids.map(entry => {
+            const [id] = entry.split(',');
+            return fetchStreamerData(id, 'basic');
+        });
         await Promise.all(promises);
     }
 
@@ -395,12 +415,21 @@
             : '';
         const badgeStyle = isLive ? 'cursor:pointer;' : '';
 
+        const postId = data.postId || '0';
+        const postLink = `https://cafe.naver.com/bver99/${postId}`;
+
         card.innerHTML = `
             <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
             <div class="info">
-                <h3>${name} <div>${noviceHtml}<span class="status-badge ${isLive ? 'live' : ''}" style="${badgeStyle}" ${badgeAttr}>${isLive ? 'LIVE' : 'OFF'}</span></div></h3>
-                <p style="font-size:0.85rem; color:var(--text-sub); margin:0;">@${id} · 애청자수: ${fanCnt.toLocaleString()}</p>
-                ${socialHtml}
+                <div class="info-header">
+                    <h3>${name}</h3> 
+                    <div>${noviceHtml}<span class="status-badge ${isLive ? 'live' : ''}" style="${badgeStyle}" ${badgeAttr}>${isLive ? 'LIVE' : 'OFF'}</span></div>
+                </div>
+                <div class="info-id">@${id}</div>
+                <div class="info-fan">애청자수: ${fanCnt.toLocaleString()}</div>
+                <a href="${postLink}" target="_blank" class="post-link" onclick="event.stopPropagation()">
+                    <img src="https://cafe.naver.com/favicon.ico"> 게시글 보기
+                </a>
             </div>
         `;
         
