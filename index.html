@@ -370,7 +370,7 @@
         msg.innerText = "확인 중...";
 
         try {
-            // 아무 ID나 하나 골라서 테스트 요청
+            // 테스트 요청
             const testId = CONFIG.ids[0].split(',')[0];
             const res = await fetch(`/api/bj_info?id=${testId}&mode=basic`, {
                 headers: { 'X-Access-Password': pw }
@@ -386,10 +386,13 @@
                 document.getElementById('passwordOverlay').style.display = 'none';
                 init();
             } else {
-                msg.innerText = "서버 오류가 발생했습니다.";
+                const txt = await res.text();
+                console.error(txt);
+                msg.innerText = `서버 오류 (${res.status})`;
             }
         } catch (e) {
-            msg.innerText = "연결할 수 없습니다.";
+            console.error(e);
+            msg.innerText = "서버에 연결할 수 없습니다.";
         }
     }
 
@@ -450,7 +453,9 @@
             const response = await fetchReq;
             if (timer) clearInterval(timer);
 
-            // 401 인증 실패 처리
+            // 응답 내용을 텍스트로 먼저 확인
+            const text = await response.text();
+
             if (response.status === 401) {
                 localStorage.removeItem('site_password');
                 document.getElementById('passwordOverlay').style.display = 'flex';
@@ -458,8 +463,22 @@
                 throw new Error('Unauthorized');
             }
 
-            if (!response.ok) throw new Error('Net err');
-            const newData = await response.json();
+            if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+            if (!text) throw new Error('Empty Response');
+
+            let newData;
+            try {
+                newData = JSON.parse(text);
+            } catch (e) {
+                console.error('JSON Parse Error:', text);
+                throw new Error('Invalid JSON');
+            }
+            
+            // 보안 모드 여부 체크 (디버깅용)
+            if (newData.auth_required === false && localStorage.getItem('site_password')) {
+                // 서버가 공개 모드인데 비밀번호가 저장돼있다면 굳이 삭제할 필요는 없지만 로그 남김
+                console.log('Server is in public mode.');
+            }
             
             // 데이터 병합 (기존 데이터를 유지하면서 최신 데이터로 덮어쓰기)
             STREAMER_DATA[id] = {

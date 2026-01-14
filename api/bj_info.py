@@ -26,6 +26,9 @@ class handler(BaseHTTPRequestHandler):
 
         # 2. 파라미터 파싱
         parsed_path = urlparse(self.path)
+        params = parse_qs(parsed_path.query)
+        bj_id = params.get('id', [None])[0]
+        mode = params.get('mode', ['full'])[0] # 'basic' or 'full' (default)
 
         if not bj_id:
             response_data = {'success': False, 'message': 'ID parameter is missing'}
@@ -76,6 +79,7 @@ class handler(BaseHTTPRequestHandler):
                     'profile_img': profile_img,
                     'is_live': is_live,
                     'fan_cnt': fan_cnt,
+                    'auth_required': bool(server_password), # 보안 모드 여부 전달
                     # basic 모드에서는 vods나 기타 무거운 정보 제외
                 }
                 self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
