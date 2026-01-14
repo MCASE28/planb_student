@@ -203,9 +203,45 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loading-text { font-size: 1.1rem; color: var(--text-main); font-weight: bold; }
+    /* Password Overlay */
+        .password-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .pw-container {
+            background: var(--card-bg); padding: 40px; border-radius: 20px;
+            text-align: center; border: 1px solid #334155;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .pw-input {
+            background: #0f172a; border: 1px solid #334155; color: white;
+            padding: 15px; font-size: 1.2rem; border-radius: 10px; margin-top: 20px;
+            width: 200px; text-align: center; outline: none; transition: border-color 0.2s;
+        }
+        .pw-input:focus { border-color: var(--accent); }
+        .pw-btn {
+            display: block; width: 100%; padding: 12px; margin-top: 15px;
+            background: var(--accent); color: white; border: none; border-radius: 10px;
+            font-size: 1rem; cursor: pointer; font-weight: bold; transition: opacity 0.2s;
+        }
+        .pw-btn:hover { opacity: 0.9; }
+        .pw-msg { margin-top: 15px; color: #ef4444; font-size: 0.9rem; min-height: 20px; }
+
     </style>
 </head>
 <body>
+
+<!-- Password Overlay -->
+<div id="passwordOverlay" class="password-overlay" style="display:none">
+    <div class="pw-container">
+        <h2 style="margin:0 0 10px 0;">🔒 보안 접속</h2>
+        <p style="color:var(--text-sub)">연습생 현황판에 접근하려면<br>비밀번호를 입력하세요.</p>
+        <input type="password" id="pwInput" class="pw-input" placeholder="비밀번호" onkeyup="if(event.key==='Enter') submitPassword()">
+        <button class="pw-btn" onclick="submitPassword()">입장하기</button>
+        <div id="pwMsg" class="pw-msg"></div>
+    </div>
+</div>
 
 <div class="container">
     <h1>플랜비 지망생 현황판</h1>
@@ -308,6 +344,55 @@
     document.querySelector('.close').onclick = () => MODAL.style.display = "none";
     window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
 
+    // 비밀번호 체크 로직
+    function checkPassword() {
+        const savedPw = localStorage.getItem('site_password');
+        if (!savedPw) {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+        } else {
+            // 비밀번호가 있으면 초기화 진행
+            init();
+        }
+    }
+
+    async function submitPassword() {
+        const input = document.getElementById('pwInput');
+        const msg = document.getElementById('pwMsg');
+        const pw = input.value.trim();
+
+        if (!pw) {
+            msg.innerText = "비밀번호를 입력해주세요.";
+            return;
+        }
+
+        // 임시 저장 후 테스트 요청
+        localStorage.setItem('site_password', pw);
+        msg.innerText = "확인 중...";
+
+        try {
+            // 아무 ID나 하나 골라서 테스트 요청
+            const testId = CONFIG.ids[0].split(',')[0];
+            const res = await fetch(`/api/bj_info?id=${testId}&mode=basic`, {
+                headers: { 'X-Access-Password': pw }
+            });
+
+            if (res.status === 401) {
+                msg.innerText = "비밀번호가 틀렸습니다.";
+                localStorage.removeItem('site_password');
+                input.value = '';
+                input.focus();
+            } else if (res.ok) {
+                // 성공
+                document.getElementById('passwordOverlay').style.display = 'none';
+                init();
+            } else {
+                msg.innerText = "서버 오류가 발생했습니다.";
+            }
+        } catch (e) {
+            msg.innerText = "연결할 수 없습니다.";
+        }
+    }
+
     async function init() {
         const listContainer = document.getElementById('streamer-list');
         listContainer.innerHTML = '';
@@ -350,8 +435,12 @@
         }
 
         try {
-            // mode 파라미터 추가
-            const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`);
+            const savedPw = localStorage.getItem('site_password') || '';
+            
+            // mode 파라미터 추가 & 헤더에 비밀번호 추가
+            const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`, {
+                headers: { 'X-Access-Password': savedPw }
+            });
             
             // Basic 모드일 때 최소 로딩 시간 보장 (UX)
             if (mode === 'basic') {
@@ -360,6 +449,14 @@
 
             const response = await fetchReq;
             if (timer) clearInterval(timer);
+
+            // 401 인증 실패 처리
+            if (response.status === 401) {
+                localStorage.removeItem('site_password');
+                document.getElementById('passwordOverlay').style.display = 'flex';
+                document.getElementById('pwMsg').innerText = "비밀번호가 올바르지 않거나 만료되었습니다.";
+                throw new Error('Unauthorized');
+            }
 
             if (!response.ok) throw new Error('Net err');
             const newData = await response.json();
@@ -770,7 +867,7 @@
     Chart.defaults.color = '#94a3b8';
     Chart.defaults.borderColor = '#334155';
 
-    init();
+    checkPassword();
 </script>
 </body>
 </html>

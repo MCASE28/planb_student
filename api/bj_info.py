@@ -4,19 +4,28 @@ import json
 import requests
 import re
 
+import os
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # 1. 파라미터 파싱
-        parsed_path = urlparse(self.path)
-        params = parse_qs(parsed_path.query)
-        bj_id = params.get('id', [None])[0]
-        mode = params.get('mode', ['full'])[0] # 'basic' or 'full' (default)
+        # 1. 보안 검사 (환경 변수가 설정된 경우에만 작동)
+        server_password = os.environ.get('ACCESS_PASSWORD')
+        client_password = self.headers.get('X-Access-Password')
 
         # 헤더 설정 (CORS 허용)
-        self.send_response(200)
+        self.send_response(200 if not server_password or server_password == client_password else 401)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Headers', 'X-Access-Password') # 허용 헤더 추가
         self.end_headers()
+
+        # 인증 실패 시 즉시 종료
+        if server_password and server_password != client_password:
+            self.wfile.write(json.dumps({'success': False, 'message': 'Unauthorized'}).encode('utf-8'))
+            return
+
+        # 2. 파라미터 파싱
+        parsed_path = urlparse(self.path)
 
         if not bj_id:
             response_data = {'success': False, 'message': 'ID parameter is missing'}
