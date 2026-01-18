@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,6 @@
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
@@ -16,139 +16,492 @@
             --accent: #3b82f6;
             --live: #ef4444;
             --calendar-cell: #334155;
-            --calendar-active: #10b981; 
+            --calendar-active: #10b981;
             --calendar-active-text: #ffffff;
         }
 
-        body { font-family: 'Pretendard', 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; padding-bottom: 50px; }
-        
-        h1 { text-align: center; margin-bottom: 40px; font-weight: 800; color: var(--text-main); font-size: 2rem; }
+        body {
+            font-family: 'Pretendard', 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding-bottom: 50px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: 800;
+            color: var(--text-main);
+            font-size: 2rem;
+        }
 
         /* Grid Layout */
-        #streamer-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        
-        /* Card Style */
-        .card { 
-            display: flex; align-items: center; 
-            background: var(--card-bg); border: 1px solid #334155; 
-            padding: 20px; border-radius: 16px; 
-            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; 
+        #streamer-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-color: var(--accent); }
-        .card.novice { border-color: #86efac; border-width: 1px; }
-        .card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #475569; }
-        
-        .info { display: flex; flex-direction: column; width: 100%; gap: 2px; }
-        .info-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
-        .info-header h3 { margin: 0; font-size: 1.1rem; }
-        .info-id { font-size: 0.85rem; color: var(--text-sub); }
-        .info-fan { font-size: 0.85rem; color: var(--text-sub); }
-        
-        .post-link { 
-            display: inline-flex; align-items: center; gap: 6px; 
-            margin-top: 8px; font-size: 0.85rem; 
-            color: var(--text-main); text-decoration: none; 
-            background: #334155; padding: 5px 10px; border-radius: 8px; 
-            width: fit-content; transition: background 0.2s;
-        }
-        .post-link:hover { background: var(--accent); }
-        .post-link img { width: 14px !important; height: 14px !important; border: none !important; margin: 0 !important; border-radius: 0 !important; }
 
-        .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background-color: #475569; color: #cbd5e1; }
-        .status-badge.live { background-color: var(--live); color: white; animation: pulse 2s infinite; }
-        .novice-badge { font-size: 0.75rem; margin-right: 5px; color: #86efac; font-weight: bold; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* Card Style */
+        .card {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            padding: 20px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-color: var(--accent);
+        }
+
+        .card.novice {
+            border-color: #86efac;
+            border-width: 1px;
+        }
+
+        .card img {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #475569;
+        }
+
+        .info {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 2px;
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .info-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .info-id {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .info-fan {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .post-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            text-decoration: none;
+            background: #334155;
+            padding: 5px 10px;
+            border-radius: 8px;
+            width: fit-content;
+            transition: background 0.2s;
+        }
+
+        .post-link:hover {
+            background: var(--accent);
+        }
+
+        .post-link img {
+            width: 14px !important;
+            height: 14px !important;
+            border: none !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: #475569;
+            color: #cbd5e1;
+        }
+
+        .status-badge.live {
+            background-color: var(--live);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .novice-badge {
+            font-size: 0.75rem;
+            margin-right: 5px;
+            color: #86efac;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
 
         /* Modal */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
-        .modal-content { 
-            background: var(--card-bg); margin: 3vh auto; padding: 30px; 
-            width: 95%; max-width: 1300px; height: 90vh; 
-            border-radius: 20px; position: relative; display: flex; flex-direction: column; 
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
-            overflow: hidden; 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
         }
-        .close { position: absolute; right: 25px; top: 20px; font-size: 30px; color: var(--text-sub); cursor: pointer; z-index: 10; }
-        
+
+        .modal-content {
+            background: var(--card-bg);
+            margin: 3vh auto;
+            padding: 30px;
+            width: 95%;
+            max-width: 1300px;
+            height: 90vh;
+            border-radius: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .close {
+            position: absolute;
+            right: 25px;
+            top: 20px;
+            font-size: 30px;
+            color: var(--text-sub);
+            cursor: pointer;
+            z-index: 10;
+        }
+
         /* Modal Header */
-        .modal-header { display: flex; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
-        .modal-header > img { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; border: 2px solid #475569; }
-        .modal-header h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
-        .soop-link { display: inline-flex; align-items: center; text-decoration: none; background: #334155; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; color: #fff; transition: background 0.2s; }
-        .soop-link:hover { background: var(--accent); }
-        .soop-icon { width: 16px !important; height: 16px !important; margin-right: 5px; border-radius: 4px; vertical-align: middle; }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .modal-header>img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 2px solid #475569;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .soop-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            background: #334155;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #fff;
+            transition: background 0.2s;
+        }
+
+        .soop-link:hover {
+            background: var(--accent);
+        }
+
+        .soop-icon {
+            width: 16px !important;
+            height: 16px !important;
+            margin-right: 5px;
+            border-radius: 4px;
+            vertical-align: middle;
+        }
 
         /* Modal Body Grid (Left: Calendar, Right: Graph) */
-        .modal-body { display: flex; gap: 30px; height: 100%; overflow: hidden; }
-        .left-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
-        
-        .right-panel { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-            overflow-y: auto; 
+        .modal-body {
+            display: flex;
+            gap: 30px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
             padding-right: 10px;
-            justify-content: center; 
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            padding-right: 10px;
+            justify-content: center;
         }
 
         /* Legend Style */
         .calendar-legend {
-            display: flex; gap: 15px; font-size: 1rem; color: var(--text-sub); 
-            margin-bottom: 15px; background: #0f172a; padding: 10px 15px; border-radius: 12px;
+            display: flex;
+            gap: 15px;
+            font-size: 1rem;
+            color: var(--text-sub);
+            margin-bottom: 15px;
+            background: #0f172a;
+            padding: 10px 15px;
+            border-radius: 12px;
             align-self: flex-start;
         }
-        .legend-item { display: flex; align-items: center; gap: 6px; }
-        .box-vod { width: 15px; height: 15px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 3px; }
-        .box-multi { width: 15px; height: 15px; background: rgba(16, 185, 129, 0.2); border: 1px solid #3b82f6; border-radius: 3px; }
-        .box-empty { width: 15px; height: 15px; background: #334155; border-radius: 3px; }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .box-vod {
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 3px;
+        }
+
+        .box-multi {
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #3b82f6;
+            border-radius: 3px;
+        }
+
+        .box-empty {
+            width: 15px;
+            height: 15px;
+            background: #334155;
+            border-radius: 3px;
+        }
 
         /* Calendar Styles */
-        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .calendar-title { font-size: 1.2rem; font-weight: bold; }
-        .btn-month { background: none; border: 1px solid #475569; color: var(--text-main); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
-        .btn-month:hover { background: #334155; }
-
-        .calendar-grid { display: grid; grid-template-columns: 50px repeat(7, 1fr); gap: 5px; text-align: center; }
-        .cal-header { color: var(--text-sub); font-size: 0.8rem; padding: 5px; }
-        .cal-week-stat { font-size: 0.65rem; color: var(--text-sub); display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0f172a; border-radius: 8px; padding: 5px; line-height: 1.4; }
-        .cal-day { 
-            background: #334155; border-radius: 8px; min-height: 85px; padding: 5px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-            position: relative; 
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
-        .cal-day.empty { background: transparent; }
-        .cal-day.has-vod { background: rgba(16, 185, 129, 0.2); cursor: pointer; border: 1px solid rgba(16, 185, 129, 0.4); }
-        .cal-day.has-vod:hover { background: rgba(16, 185, 129, 0.3); }
-        .cal-day.multi-vod { border-color: #3b82f6; border-width: 1.5px; }
-        .cal-day.is-today { border: 2px solid var(--live) !important; } /* 오늘 날짜 붉은 테두리 */
-        .cal-day.station-open-day { border-top: 4px solid #facc15 !important; border-left: 4px solid #facc15 !important; } /* 방송국 개설일 */
-        
-        .day-num { font-size: 0.9rem; margin-bottom: 5px; width: 100%; text-align: left; padding-left: 5px; font-weight: bold; }
-        .day-time { font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-top: auto; margin-bottom: auto; line-height: 1.2; }
+
+        .calendar-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .btn-month {
+            background: none;
+            border: 1px solid #475569;
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-month:hover {
+            background: #334155;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 50px repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .cal-header {
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            padding: 5px;
+        }
+
+        .cal-week-stat {
+            font-size: 0.65rem;
+            color: var(--text-sub);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 5px;
+            line-height: 1.4;
+        }
+
+        .cal-day {
+            background: #334155;
+            border-radius: 8px;
+            min-height: 85px;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+        }
+
+        .cal-day.empty {
+            background: transparent;
+        }
+
+        .cal-day.has-vod {
+            background: rgba(16, 185, 129, 0.2);
+            cursor: pointer;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .cal-day.has-vod:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+        .cal-day.multi-vod {
+            border-color: #3b82f6;
+            border-width: 1.5px;
+        }
+
+        .cal-day.is-today {
+            border: 2px solid var(--live) !important;
+        }
+
+        /* 오늘 날짜 붉은 테두리 */
+        .cal-day.station-open-day {
+            border-top: 4px solid #facc15 !important;
+            border-left: 4px solid #facc15 !important;
+        }
+
+        /* 방송국 개설일 */
+
+        .day-num {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            width: 100%;
+            text-align: left;
+            padding-left: 5px;
+            font-weight: bold;
+        }
+
+        .day-time {
+            font-size: 0.8rem;
+            color: #6ee7b7;
+            font-weight: bold;
+            margin-top: auto;
+            margin-bottom: auto;
+            line-height: 1.2;
+        }
 
         /* Graph Container */
-        .chart-container { 
-            background: #0f172a; padding: 20px; border-radius: 16px; 
-            display: flex; flex-direction: column; margin-bottom: 20px; 
+        .chart-container {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
         }
-        .chart-wrapper { position: relative; width: 100%; min-height: 270px; height: 270px; } 
-        h3 { margin-top: 0; font-size: 1.1rem; color: var(--text-sub); margin-bottom: 20px; }
 
-        footer { text-align: center; margin-top: 50px; color: var(--text-sub); font-size: 0.8rem; }
-        
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            min-height: 270px;
+            height: 270px;
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: var(--text-sub);
+            font-size: 0.8rem;
+        }
+
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
 
         @media (max-width: 900px) {
-            .modal-body { flex-direction: column; overflow-y: auto; }
-            .modal-content { height: auto; max-height: 90vh; }
-            .chart-wrapper { min-height: 200px; }
+            .modal-body {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+
+            .modal-content {
+                height: auto;
+                max-height: 90vh;
+            }
+
+            .chart-wrapper {
+                min-height: 200px;
+            }
         }
 
         /* Cafe Link Style */
@@ -156,6 +509,7 @@
             text-align: center;
             margin-bottom: 40px;
         }
+
         .cafe-link {
             display: inline-flex;
             align-items: center;
@@ -166,9 +520,11 @@
             font-weight: bold;
             transition: opacity 0.2s;
         }
+
         .cafe-link:hover {
             opacity: 0.8;
         }
+
         .cafe-link img {
             width: 15px;
             height: 15px;
@@ -176,369 +532,474 @@
         }
 
         /* Social Links in Card */
-        .social-links { display: flex; gap: 8px; margin-top: 8px; }
-        .social-btn { 
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 28px; height: 28px; border-radius: 50%; 
-            background: #334155; border: 1px solid #475569; 
-            transition: all 0.2s; text-decoration: none;
+        .social-links {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
         }
-        .social-btn:hover { background: #475569; transform: scale(1.1); border-color: var(--text-sub); }
-        .social-btn img { width: 16px; height: 16px; border-radius: 0 !important; border: none !important; margin: 0 !important; }
+
+        .social-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #334155;
+            border: 1px solid #475569;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .social-btn:hover {
+            background: #475569;
+            transform: scale(1.1);
+            border-color: var(--text-sub);
+        }
+
+        .social-btn img {
+            width: 16px;
+            height: 16px;
+            border-radius: 0 !important;
+            border: none !important;
+            margin: 0 !important;
+        }
 
         /* Loading Overlay */
         .loading-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(30, 41, 59, 0.7); /* card-bg with opacity */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(30, 41, 59, 0.7);
+            /* card-bg with opacity */
             backdrop-filter: blur(5px);
-            z-index: 50; display: none;
-            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             border-radius: 20px;
         }
-        .loading-overlay.active { display: flex; }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #334155; border-top: 4px solid var(--accent);
-            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { font-size: 1.1rem; color: var(--text-main); font-weight: bold; }
-    /* Password Overlay */
-        .password-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0f172a; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .pw-container {
-            background: var(--card-bg); padding: 40px; border-radius: 20px;
-            text-align: center; border: 1px solid #334155;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-        .pw-input {
-            background: #0f172a; border: 1px solid #334155; color: white;
-            padding: 15px; font-size: 1.2rem; border-radius: 10px; margin-top: 20px;
-            width: 200px; text-align: center; outline: none; transition: border-color 0.2s;
-        }
-        .pw-input:focus { border-color: var(--accent); }
-        .pw-btn {
-            display: block; width: 100%; padding: 12px; margin-top: 15px;
-            background: var(--accent); color: white; border: none; border-radius: 10px;
-            font-size: 1rem; cursor: pointer; font-weight: bold; transition: opacity 0.2s;
-        }
-        .pw-btn:hover { opacity: 0.9; }
-        .pw-msg { margin-top: 15px; color: #ef4444; font-size: 0.9rem; min-height: 20px; }
 
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #334155;
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        /* Password Overlay */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pw-container {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 1px solid #334155;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .pw-input {
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            margin-top: 20px;
+            width: 200px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .pw-input:focus {
+            border-color: var(--accent);
+        }
+
+        .pw-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .pw-btn:hover {
+            opacity: 0.9;
+        }
+
+        .pw-msg {
+            margin-top: 15px;
+            color: #ef4444;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
     </style>
 </head>
+
 <body>
 
-<!-- Password Overlay -->
-<div id="passwordOverlay" class="password-overlay" style="display:none">
-    <div class="pw-container">
-        <h2 style="margin:0 0 10px 0;">🔒 보안 접속</h2>
-        <p style="color:var(--text-sub)">연습생 현황판에 접근하려면<br>비밀번호를 입력하세요.</p>
-        <input type="password" id="pwInput" class="pw-input" placeholder="비밀번호" onkeyup="if(event.key==='Enter') submitPassword()">
-        <button class="pw-btn" onclick="submitPassword()">입장하기</button>
-        <div id="pwMsg" class="pw-msg"></div>
-    </div>
-</div>
-
-<div class="container">
-    <h1>플랜비 지망생 현황판</h1>
-    
-    <div class="cafe-link-container">
-        <a href="https://cafe.naver.com/f-e/cafes/30723072/menus/270" target="_blank" class="cafe-link">
-            <img src="https://cafe.naver.com/favicon.ico" alt="Naver Cafe">
-            게시판 이동하기
-        </a>
+    <!-- Password Overlay -->
+    <div id="passwordOverlay" class="password-overlay" style="display:none">
+        <div class="pw-container">
+            <h2 style="margin:0 0 10px 0;">🔒 보안 접속</h2>
+            <p style="color:var(--text-sub)">연습생 현황판에 접근하려면<br>비밀번호를 입력하세요.</p>
+            <input type="password" id="pwInput" class="pw-input" placeholder="비밀번호"
+                onkeyup="if(event.key==='Enter') submitPassword()">
+            <button class="pw-btn" onclick="submitPassword()">입장하기</button>
+            <div id="pwMsg" class="pw-msg"></div>
+        </div>
     </div>
 
-    <div id="streamer-list"></div>
-    
-    <footer>
-        <p><strong>[안내]</strong></p>
-        <p>본 서비스는 팬심으로 제작된 비공식 팬 사이트입니다.<br>
-        SOOP의 데이터를 실시간으로 조회하며, 방송인의 권리를 침해할 의도가 없습니다.<br>
-        플랫폼 사정에 따라 데이터 조회가 일시적으로 제한될 수 있습니다.<br>
-        만든이 : 옳다쿠나</p>
-    </footer>
-</div>
+    <div class="container">
+        <h1>플랜비 지망생 현황판</h1>
 
-<!-- Modal -->
-<div id="infoModal" class="modal">
-    <div class="modal-content">
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="loading-overlay">
-            <div class="spinner"></div>
-            <div class="loading-text">데이터 불러오는 중...</div>
+        <div class="cafe-link-container">
+            <a href="https://cafe.naver.com/f-e/cafes/30723072/menus/270" target="_blank" class="cafe-link">
+                <img src="https://cafe.naver.com/favicon.ico" alt="Naver Cafe">
+                게시판 이동하기
+            </a>
         </div>
 
-        <span class="close">&times;</span>
-        <div id="modalHeader" class="modal-header"></div>
-        <div class="modal-body">
-            <!-- Left: Calendar -->
-            <div class="left-panel">
-                <div class="calendar-legend">
-                    <div class="legend-item"><div class="box-vod"></div> 방송있음</div>
-                    <div class="legend-item"><div class="box-multi"></div> 다시보기 2개이상</div>
-                    <div class="legend-item"><div class="box-empty"></div> 없음</div>
-                </div>
-                <div class="calendar-controls">
-                    <button class="btn-month" onclick="changeMonth(-1)">◀</button>
-                    <div class="calendar-title" id="calTitle">2026. 1</div>
-                    <button class="btn-month" onclick="changeMonth(1)">▶</button>
-                </div>
-                <div class="calendar-grid" id="calendarGrid">
-                    <!-- JS Generated -->
-                </div>
+        <div id="streamer-list"></div>
+
+        <footer>
+            <p><strong>[안내]</strong></p>
+            <p>본 서비스는 팬심으로 제작된 비공식 팬 사이트입니다.<br>
+                SOOP의 데이터를 실시간으로 조회하며, 방송인의 권리를 침해할 의도가 없습니다.<br>
+                플랫폼 사정에 따라 데이터 조회가 일시적으로 제한될 수 있습니다.<br>
+                만든이 : 옳다쿠나</p>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="loading-overlay">
+                <div class="spinner"></div>
+                <div class="loading-text">데이터 불러오는 중...</div>
             </div>
-            
-            <!-- Right: Graph -->
-            <div class="right-panel">
-                <div class="chart-container">
-                    <h3 id="chartTitle">월간 방송 시간 추이</h3>
-                    
-                    <div class="chart-wrapper">
-                        <canvas id="timeChart"></canvas>
+
+            <span class="close">&times;</span>
+            <div id="modalHeader" class="modal-header"></div>
+            <div class="modal-body">
+                <!-- Left: Calendar -->
+                <div class="left-panel">
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <div class="box-vod"></div> 방송있음
+                        </div>
+                        <div class="legend-item">
+                            <div class="box-multi"></div> 다시보기 2개이상
+                        </div>
+                        <div class="legend-item">
+                            <div class="box-empty"></div> 없음
+                        </div>
+                    </div>
+                    <div class="calendar-controls">
+                        <button class="btn-month" onclick="changeMonth(-1)">◀</button>
+                        <div class="calendar-title" id="calTitle">2026. 1</div>
+                        <button class="btn-month" onclick="changeMonth(1)">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+
+                <!-- Right: Graph -->
+                <div class="right-panel">
+                    <div class="chart-container">
+                        <h3 id="chartTitle">월간 방송 시간 추이</h3>
+
+                        <div class="chart-wrapper">
+                            <canvas id="timeChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    const CONFIG = {
-        ids: [
-            'bluejin0129,178387', // 지오
-            'gome02,178469', // 밤문
-            'likethis1125,178530', // 도페
-            'pinra00,178729', // 핀라
-            'whitesora,178972', //백소라
-            'jang1109,179242', //미라드
-            'zzeogoo,179313', // 햄쩌구
-            'doheezzan,179888', //도히짠
-            'reaper7862,180188', //rp7
-            'dlsvhwk00,180222', // 싴련
-            'seri1100,181092', // 몽세리
-            'whtndus0830,181159', // 쪼아나
-            'marihema,182596', //마리히
-            'somnnya,182631', //김솜냐
-            'runna11,184323', //룬나
-            'ninfantaem,184359', //달달햇
-            'nsmfqha2057,184775', //윤세아
-            'hwanidayo,184808' //화니다요
-        ]
+    <script>
+        const CONFIG = {
+            ids: [
+                'bluejin0129,178387', // 지오
+                'gome02,178469', // 밤문
+                'likethis1125,178530', // 도페
+                'pinra00,178729', // 핀라
+                'whitesora,178972', //백소라
+                'jang1109,179242', //미라드
+                'zzeogoo,179313', // 햄쩌구
+                'doheezzan,179888', //도히짠
+                'reaper7862,180188', //rp7
+                'dlsvhwk00,180222', // 싴련
+                'seri1100,181092', // 몽세리
+                'whtndus0830,181159', // 쪼아나
+                'marihema,182596', //마리히
+                'somnnya,182631', //김솜냐
+                'runna11,184323', //룬나
+                'ninfantaem,184359', //달달햇
+                'nsmfqha2057,184775', //윤세아
+                'hwanidayo,184808', //화니다요
+                'haruniong', //하루뇽
+            ]
 
-    };
+        };
 
-    const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
-    const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico"; 
+        const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
+        const SOOP_ICON = "https://res.sooplive.co.kr/afreeca.ico";
 
-    const MODAL = document.getElementById('infoModal');
-    const LOADING_OVERLAY = document.getElementById('loadingOverlay');
-    const STREAMER_DATA = {};
-    const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
-    
-    let currentYear = 2026;
-    let currentMonth = 1; 
-    let currentStreamerId = null;
-    let timeChartInstance = null;
+        const MODAL = document.getElementById('infoModal');
+        const LOADING_OVERLAY = document.getElementById('loadingOverlay');
+        const STREAMER_DATA = {};
+        const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 
-    document.querySelector('.close').onclick = () => MODAL.style.display = "none";
-    window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
+        let currentYear = 2026;
+        let currentMonth = 1;
+        let currentStreamerId = null;
+        let timeChartInstance = null;
 
-    // 비밀번호 체크 로직
-    function checkPassword() {
-        const savedPw = localStorage.getItem('site_password');
-        if (!savedPw) {
-            document.getElementById('passwordOverlay').style.display = 'flex';
-        } else {
-            // 비밀번호가 있으면 초기화 진행
-            init();
-        }
-    }
+        document.querySelector('.close').onclick = () => MODAL.style.display = "none";
+        window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
 
-    async function submitPassword() {
-        const input = document.getElementById('pwInput');
-        const msg = document.getElementById('pwMsg');
-        const pw = input.value.trim();
-
-        if (!pw) {
-            msg.innerText = "비밀번호를 입력해주세요.";
-            return;
-        }
-
-        // 임시 저장 후 테스트 요청
-        localStorage.setItem('site_password', pw);
-        msg.innerText = "확인 중...";
-
-        try {
-            // 테스트 요청
-            const testId = CONFIG.ids[0].split(',')[0];
-            const res = await fetch(`/api/bj_info?id=${testId}&mode=basic`, {
-                headers: { 'X-Access-Password': pw }
-            });
-
-            if (res.status === 401) {
-                msg.innerText = "비밀번호가 틀렸습니다.";
-                localStorage.removeItem('site_password');
-                input.value = '';
-                input.focus();
-            } else if (res.ok) {
-                // 성공
-                document.getElementById('passwordOverlay').style.display = 'none';
-                init();
-            } else {
-                const txt = await res.text();
-                console.error(txt);
-                msg.innerText = `서버 오류 (${res.status})`;
-            }
-        } catch (e) {
-            console.error(e);
-            msg.innerText = "서버에 연결할 수 없습니다.";
-        }
-    }
-
-    async function init() {
-        const listContainer = document.getElementById('streamer-list');
-        listContainer.innerHTML = '';
-
-        CONFIG.ids.forEach(entry => {
-            const [id, postId] = entry.split(',');
-            // 초기 데이터에 게시글 번호 저장
-            STREAMER_DATA[id] = { postId: postId || '0' };
-
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.id = `card-${id}`;
-            card.innerHTML = `<div class="loading" style="color:#94a3b8; font-size:0.9rem">데이터 요청 중...</div>`;
-            listContainer.appendChild(card);
-        });
-
-        // 초기 로딩은 'basic' 모드로 가볍게 요청
-        const promises = CONFIG.ids.map(entry => {
-            const [id] = entry.split(',');
-            return fetchStreamerData(id, 'basic');
-        });
-        await Promise.all(promises);
-    }
-
-    async function fetchStreamerData(id, mode='basic') {
-        const card = document.getElementById(`card-${id}`);
-        let timer = null;
-
-        // Basic 모드일 때만 카드 로딩 애니메이션 표시 (초기 진입 시)
-        if (mode === 'basic' && card) {
-            const loadingDiv = card.querySelector('.loading');
-            const msgs = ["연결 중...", "정보 확인...", "상태 체크..."];
-            let step = 0;
-            timer = setInterval(() => {
-                if (loadingDiv) {
-                    step++;
-                    loadingDiv.innerText = msgs[step % msgs.length];
-                }
-            }, 300);
-        }
-
-        try {
-            const savedPw = localStorage.getItem('site_password') || '';
-            
-            // mode 파라미터 추가 & 헤더에 비밀번호 추가
-            const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`, {
-                headers: { 'X-Access-Password': savedPw }
-            });
-            
-            // Basic 모드일 때 최소 로딩 시간 보장 (UX)
-            if (mode === 'basic') {
-                await new Promise(r => setTimeout(r, 500));
-            }
-
-            const response = await fetchReq;
-            if (timer) clearInterval(timer);
-
-            // 응답 내용을 텍스트로 먼저 확인
-            const text = await response.text();
-
-            if (response.status === 401) {
-                localStorage.removeItem('site_password');
+        // 비밀번호 체크 로직
+        function checkPassword() {
+            const savedPw = localStorage.getItem('site_password');
+            if (!savedPw) {
                 document.getElementById('passwordOverlay').style.display = 'flex';
-                document.getElementById('pwMsg').innerText = "비밀번호가 올바르지 않거나 만료되었습니다.";
-                throw new Error('Unauthorized');
+            } else {
+                // 비밀번호가 있으면 초기화 진행
+                init();
+            }
+        }
+
+        async function submitPassword() {
+            const input = document.getElementById('pwInput');
+            const msg = document.getElementById('pwMsg');
+            const pw = input.value.trim();
+
+            if (!pw) {
+                msg.innerText = "비밀번호를 입력해주세요.";
+                return;
             }
 
-            if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-            if (!text) throw new Error('Empty Response');
+            // 임시 저장 후 테스트 요청
+            localStorage.setItem('site_password', pw);
+            msg.innerText = "확인 중...";
 
-            let newData;
             try {
-                newData = JSON.parse(text);
+                // 테스트 요청
+                const testId = CONFIG.ids[0].split(',')[0];
+                const res = await fetch(`/api/bj_info?id=${testId}&mode=basic`, {
+                    headers: { 'X-Access-Password': pw }
+                });
+
+                if (res.status === 401) {
+                    msg.innerText = "비밀번호가 틀렸습니다.";
+                    localStorage.removeItem('site_password');
+                    input.value = '';
+                    input.focus();
+                } else if (res.ok) {
+                    // 성공
+                    document.getElementById('passwordOverlay').style.display = 'none';
+                    init();
+                } else {
+                    const txt = await res.text();
+                    console.error(txt);
+                    msg.innerText = `서버 오류 (${res.status})`;
+                }
             } catch (e) {
-                console.error('JSON Parse Error:', text);
-                throw new Error('Invalid JSON');
+                console.error(e);
+                msg.innerText = "서버에 연결할 수 없습니다.";
             }
-            
-            // 보안 모드 여부 체크 (디버깅용)
-            if (newData.auth_required === false && localStorage.getItem('site_password')) {
-                // 서버가 공개 모드인데 비밀번호가 저장돼있다면 굳이 삭제할 필요는 없지만 로그 남김
-                console.log('Server is in public mode.');
-            }
-            
-            // 데이터 병합 (기존 데이터를 유지하면서 최신 데이터로 덮어쓰기)
-            STREAMER_DATA[id] = {
-                ...(STREAMER_DATA[id] || {}),
-                ...newData,
-                lastUpdated: Date.now() // 타임스탬프 갱신
-            };
+        }
 
-            // Basic 정보가 오면 카드 UI 갱신 (Full 요청 시에도 최신 기본정보가 오므로 갱신)
-            updateCardUI(id);
+        async function init() {
+            const listContainer = document.getElementById('streamer-list');
+            listContainer.innerHTML = '';
 
-        } catch (err) {
-            if (timer) clearInterval(timer);
-            console.error(err);
+            CONFIG.ids.forEach(entry => {
+                const [id, postId] = entry.split(',');
+                // 초기 데이터에 게시글 번호 저장
+                STREAMER_DATA[id] = { postId: postId || '0' };
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = `card-${id}`;
+                card.innerHTML = `<div class="loading" style="color:#94a3b8; font-size:0.9rem">데이터 요청 중...</div>`;
+                listContainer.appendChild(card);
+            });
+
+            // 초기 로딩은 'basic' 모드로 가볍게 요청
+            const promises = CONFIG.ids.map(entry => {
+                const [id] = entry.split(',');
+                return fetchStreamerData(id, 'basic');
+            });
+            await Promise.all(promises);
+        }
+
+        async function fetchStreamerData(id, mode = 'basic') {
+            const card = document.getElementById(`card-${id}`);
+            let timer = null;
+
+            // Basic 모드일 때만 카드 로딩 애니메이션 표시 (초기 진입 시)
             if (mode === 'basic' && card) {
-                card.innerHTML = `<div class="info"><p style="color:var(--live)">Load Failed</p></div>`;
+                const loadingDiv = card.querySelector('.loading');
+                const msgs = ["연결 중...", "정보 확인...", "상태 체크..."];
+                let step = 0;
+                timer = setInterval(() => {
+                    if (loadingDiv) {
+                        step++;
+                        loadingDiv.innerText = msgs[step % msgs.length];
+                    }
+                }, 300);
+            }
+
+            try {
+                const savedPw = localStorage.getItem('site_password') || '';
+
+                // mode 파라미터 추가 & 헤더에 비밀번호 추가
+                const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`, {
+                    headers: { 'X-Access-Password': savedPw }
+                });
+
+                // Basic 모드일 때 최소 로딩 시간 보장 (UX)
+                if (mode === 'basic') {
+                    await new Promise(r => setTimeout(r, 500));
+                }
+
+                const response = await fetchReq;
+                if (timer) clearInterval(timer);
+
+                // 응답 내용을 텍스트로 먼저 확인
+                const text = await response.text();
+
+                if (response.status === 401) {
+                    localStorage.removeItem('site_password');
+                    document.getElementById('passwordOverlay').style.display = 'flex';
+                    document.getElementById('pwMsg').innerText = "비밀번호가 올바르지 않거나 만료되었습니다.";
+                    throw new Error('Unauthorized');
+                }
+
+                if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+                if (!text) throw new Error('Empty Response');
+
+                let newData;
+                try {
+                    newData = JSON.parse(text);
+                } catch (e) {
+                    console.error('JSON Parse Error:', text);
+                    throw new Error('Invalid JSON');
+                }
+
+                // 보안 모드 여부 체크 (디버깅용)
+                if (newData.auth_required === false && localStorage.getItem('site_password')) {
+                    // 서버가 공개 모드인데 비밀번호가 저장돼있다면 굳이 삭제할 필요는 없지만 로그 남김
+                    console.log('Server is in public mode.');
+                }
+
+                // 데이터 병합 (기존 데이터를 유지하면서 최신 데이터로 덮어쓰기)
+                STREAMER_DATA[id] = {
+                    ...(STREAMER_DATA[id] || {}),
+                    ...newData,
+                    lastUpdated: Date.now() // 타임스탬프 갱신
+                };
+
+                // Basic 정보가 오면 카드 UI 갱신 (Full 요청 시에도 최신 기본정보가 오므로 갱신)
+                updateCardUI(id);
+
+            } catch (err) {
+                if (timer) clearInterval(timer);
+                console.error(err);
+                if (mode === 'basic' && card) {
+                    card.innerHTML = `<div class="info"><p style="color:var(--live)">Load Failed</p></div>`;
+                }
             }
         }
-    }
 
-    function updateCardUI(id) {
-        const data = STREAMER_DATA[id];
-        const card = document.getElementById(`card-${id}`);
-        if (!data || !card) return;
+        function updateCardUI(id) {
+            const data = STREAMER_DATA[id];
+            const card = document.getElementById(`card-${id}`);
+            if (!data || !card) return;
 
-        const name = data.nickname || id;
-        const img = data.profile_img || DEFAULT_IMG;
-        const isLive = data.is_live;
-        const fanCnt = data.fan_cnt || 0;
-        const isNovice = fanCnt < 300;
+            const name = data.nickname || id;
+            const img = data.profile_img || DEFAULT_IMG;
+            const isLive = data.is_live;
+            const fanCnt = data.fan_cnt || 0;
+            const isNovice = fanCnt < 300;
 
-        if (isNovice) card.classList.add('novice');
-        else card.classList.remove('novice');
-        
-        // 소셜 링크
-        let socialHtml = '<div class="social-links">';
-        if (data.social_links) { // API에서 주지 않는다면 빈 값
-             // 필요하다면 API 수정해서 social_links도 basic에 포함해야 함. 현재는 없음.
-        }
-        // 임시: 소셜 링크는 API 응답에 없으므로 기존 로직 유지 불가하나, 
-        // 요구사항에 언급 없으므로 패스하거나 data에 있으면 표시.
-        // (기존 코드에서도 social_links는 API 응답에 없었음, 아마 하드코딩이나 추후 확장을 염두에 둔 코드였을 듯)
-        // 여기선 일단 닫아둠.
-        socialHtml += '</div>';
+            if (isNovice) card.classList.add('novice');
+            else card.classList.remove('novice');
 
-        const noviceHtml = isNovice ? `<span class="novice-badge">🌱 희망생</span>` : '';
+            // 소셜 링크
+            let socialHtml = '<div class="social-links">';
+            if (data.social_links) { // API에서 주지 않는다면 빈 값
+                // 필요하다면 API 수정해서 social_links도 basic에 포함해야 함. 현재는 없음.
+            }
+            // 임시: 소셜 링크는 API 응답에 없으므로 기존 로직 유지 불가하나, 
+            // 요구사항에 언급 없으므로 패스하거나 data에 있으면 표시.
+            // (기존 코드에서도 social_links는 API 응답에 없었음, 아마 하드코딩이나 추후 확장을 염두에 둔 코드였을 듯)
+            // 여기선 일단 닫아둠.
+            socialHtml += '</div>';
 
-        const badgeAttr = isLive 
-            ? `onclick="event.stopPropagation(); window.open('https://play.sooplive.co.kr/${id}', '_blank')"` 
-            : '';
-        const badgeStyle = isLive ? 'cursor:pointer;' : '';
+            const noviceHtml = isNovice ? `<span class="novice-badge">🌱 희망생</span>` : '';
 
-        const postId = data.postId || '0';
-        const postLink = `https://cafe.naver.com/bver99/${postId}`;
+            const badgeAttr = isLive
+                ? `onclick="event.stopPropagation(); window.open('https://play.sooplive.co.kr/${id}', '_blank')"`
+                : '';
+            const badgeStyle = isLive ? 'cursor:pointer;' : '';
 
-        card.innerHTML = `
+            const postId = data.postId || '0';
+            const postLink = `https://cafe.naver.com/bver99/${postId}`;
+
+            card.innerHTML = `
             <img src="${img}" alt="${id}" onerror="this.src='${DEFAULT_IMG}'">
             <div class="info">
                 <div class="info-header">
@@ -552,54 +1013,54 @@
                 </a>
             </div>
         `;
-        
-        card.onclick = () => openModal(id);
-    }
 
-    async function openModal(id) {
-        currentStreamerId = id;
-        currentYear = 2026; 
-        currentMonth = 1; 
-
-        // 0. 초기화: 모달 내용을 비우거나 기본값으로 설정
-        resetModalContent();
-
-        // 1. 모달 표시
-        MODAL.style.display = "block";
-        
-        let data = STREAMER_DATA[id];
-        const now = Date.now();
-        
-        // 1. 데이터가 없거나
-        // 2. VOD 목록(상세정보)이 없거나 (basic만 로드된 경우)
-        // 3. 마지막 업데이트로부터 5분이 지났으면 -> Full Request
-        const needUpdate = !data || !data.vods || (now - (data.lastUpdated || 0) > CACHE_DURATION);
-
-        if (needUpdate) {
-            // 로딩 UI 표시 (오버레이 활성화)
-            LOADING_OVERLAY.classList.add('active');
-
-            // Full 데이터 요청
-            await fetchStreamerData(id, 'full');
-            data = STREAMER_DATA[id]; // 갱신된 데이터 가져오기
-
-            // 로딩 종료
-            LOADING_OVERLAY.classList.remove('active');
+            card.onclick = () => openModal(id);
         }
 
-        updateModalHeader(data, currentYear, currentMonth);
-        renderCalendar(); 
-    }
+        async function openModal(id) {
+            currentStreamerId = id;
+            currentYear = 2026;
+            currentMonth = 1;
 
-    // 모달 초기화: 빈 캘린더, 빈 그래프, 기본 헤더 등
-    function resetModalContent() {
-        // 헤더 초기화
-        const data = STREAMER_DATA[currentStreamerId] || { nickname: currentStreamerId, fan_cnt: 0 };
-        const img = data.profile_img || DEFAULT_IMG;
-        
-        // Header는 기본 정보(이미지, 닉네임)가 있다면 그걸로 세팅, 없으면 기본값
-        // 여기선 fan_cnt 등을 보여주기보단 로딩중 느낌을 위해 최소화
-        document.getElementById('modalHeader').innerHTML = `
+            // 0. 초기화: 모달 내용을 비우거나 기본값으로 설정
+            resetModalContent();
+
+            // 1. 모달 표시
+            MODAL.style.display = "block";
+
+            let data = STREAMER_DATA[id];
+            const now = Date.now();
+
+            // 1. 데이터가 없거나
+            // 2. VOD 목록(상세정보)이 없거나 (basic만 로드된 경우)
+            // 3. 마지막 업데이트로부터 5분이 지났으면 -> Full Request
+            const needUpdate = !data || !data.vods || (now - (data.lastUpdated || 0) > CACHE_DURATION);
+
+            if (needUpdate) {
+                // 로딩 UI 표시 (오버레이 활성화)
+                LOADING_OVERLAY.classList.add('active');
+
+                // Full 데이터 요청
+                await fetchStreamerData(id, 'full');
+                data = STREAMER_DATA[id]; // 갱신된 데이터 가져오기
+
+                // 로딩 종료
+                LOADING_OVERLAY.classList.remove('active');
+            }
+
+            updateModalHeader(data, currentYear, currentMonth);
+            renderCalendar();
+        }
+
+        // 모달 초기화: 빈 캘린더, 빈 그래프, 기본 헤더 등
+        function resetModalContent() {
+            // 헤더 초기화
+            const data = STREAMER_DATA[currentStreamerId] || { nickname: currentStreamerId, fan_cnt: 0 };
+            const img = data.profile_img || DEFAULT_IMG;
+
+            // Header는 기본 정보(이미지, 닉네임)가 있다면 그걸로 세팅, 없으면 기본값
+            // 여기선 fan_cnt 등을 보여주기보단 로딩중 느낌을 위해 최소화
+            document.getElementById('modalHeader').innerHTML = `
             <img src="${img}">
             <div>
                 <h2>${data.nickname}</h2>
@@ -607,68 +1068,68 @@
             </div>
         `;
 
-        // 캘린더 초기화 (빈 그리드)
-        const grid = document.getElementById('calendarGrid');
-        grid.innerHTML = '';
-        const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
-        days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
-        // 대략적인 빈 칸 (로딩 중 모양 유지)
-        for(let i=0; i<35; i++) grid.innerHTML += `<div class="cal-day empty" style="border:1px dashed #334155; opacity:0.3;"></div>`;
+            // 캘린더 초기화 (빈 그리드)
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
+            days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
+            // 대략적인 빈 칸 (로딩 중 모양 유지)
+            for (let i = 0; i < 35; i++) grid.innerHTML += `<div class="cal-day empty" style="border:1px dashed #334155; opacity:0.3;"></div>`;
 
-        // 그래프 초기화
-        if (timeChartInstance) {
-            timeChartInstance.destroy();
-            timeChartInstance = null;
-        }
-        // 빈 그래프 생성 (축만 보이게)
-        const ctx1 = document.getElementById('timeChart').getContext('2d');
-        timeChartInstance = new Chart(ctx1, {
-            type: 'line',
-            data: { labels: [], datasets: [] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { color: '#334155' } },
-                    x: { grid: { display: false } }
-                }
+            // 그래프 초기화
+            if (timeChartInstance) {
+                timeChartInstance.destroy();
+                timeChartInstance = null;
             }
-        });
-    }
-
-    function updateModalHeader(data, year, month) {
-        const header = document.getElementById('modalHeader');
-        const img = data.profile_img || DEFAULT_IMG;
-        
-        let totalDurationSec = 0;
-        let count = 0;
-        const monthPrefix = `${year}-${String(month).padStart(2,'0')}`;
-        
-        if (data.vods) {
-            data.vods.forEach(v => {
-                if (v.date.startsWith(monthPrefix)) {
-                    totalDurationSec += v.duration_sec || 0;
-                    count++;
+            // 빈 그래프 생성 (축만 보이게)
+            const ctx1 = document.getElementById('timeChart').getContext('2d');
+            timeChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#334155' } },
+                        x: { grid: { display: false } }
+                    }
                 }
             });
         }
-        
-        let avgTimeStr = "0분";
-        if (count > 0) {
-            const avgSec = totalDurationSec / count;
-            const h = Math.floor(avgSec / 3600);
-            const m = Math.floor((avgSec % 3600) / 60);
-            avgTimeStr = h > 0 ? `${h}시간 ${m}분` : `${m}분`;
-        }
 
-        // Format station open date (YYYY-MM-DD HH:mm:ss -> YYYY.MM.DD)
-        let openDateStr = "";
-        if (data.station_open_date) {
-            const datePart = data.station_open_date.split(' ')[0];
-            openDateStr = datePart.replace(/-/g, '.');
-        }
+        function updateModalHeader(data, year, month) {
+            const header = document.getElementById('modalHeader');
+            const img = data.profile_img || DEFAULT_IMG;
 
-        header.innerHTML = `
+            let totalDurationSec = 0;
+            let count = 0;
+            const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+
+            if (data.vods) {
+                data.vods.forEach(v => {
+                    if (v.date.startsWith(monthPrefix)) {
+                        totalDurationSec += v.duration_sec || 0;
+                        count++;
+                    }
+                });
+            }
+
+            let avgTimeStr = "0분";
+            if (count > 0) {
+                const avgSec = totalDurationSec / count;
+                const h = Math.floor(avgSec / 3600);
+                const m = Math.floor((avgSec % 3600) / 60);
+                avgTimeStr = h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+            }
+
+            // Format station open date (YYYY-MM-DD HH:mm:ss -> YYYY.MM.DD)
+            let openDateStr = "";
+            if (data.station_open_date) {
+                const datePart = data.station_open_date.split(' ')[0];
+                openDateStr = datePart.replace(/-/g, '.');
+            }
+
+            header.innerHTML = `
             <img src="${img}">
             <div>
                 <h2>${data.nickname} 
@@ -684,213 +1145,214 @@
                 </p>
             </div>
         `;
-    }
-
-    function changeMonth(delta) {
-        let newDate = new Date(currentYear, currentMonth - 1 + delta, 1);
-        let newYear = newDate.getFullYear();
-        let newMonth = newDate.getMonth() + 1;
-
-        if (newYear < 2025 || (newYear === 2025 && newMonth < 9)) return;
-        if (newYear > 2026 || (newYear === 2026 && newMonth > 2)) return;
-
-        currentYear = newYear;
-        currentMonth = newMonth;
-        
-        if (currentStreamerId && STREAMER_DATA[currentStreamerId]) {
-            updateModalHeader(STREAMER_DATA[currentStreamerId], currentYear, currentMonth);
         }
 
-        renderCalendar();
-    }
+        function changeMonth(delta) {
+            let newDate = new Date(currentYear, currentMonth - 1 + delta, 1);
+            let newYear = newDate.getFullYear();
+            let newMonth = newDate.getMonth() + 1;
 
-    function renderCalendar() {
-        const title = document.getElementById('calTitle');
-        const grid = document.getElementById('calendarGrid');
-        const chartTitle = document.getElementById('chartTitle');
-        
-        title.innerText = `${currentYear}. ${currentMonth}`;
-        chartTitle.innerText = `${currentYear}년 ${currentMonth}월 방송 시간`;
+            if (newYear < 2025 || (newYear === 2025 && newMonth < 9)) return;
+            if (newYear > 2026 || (newYear === 2026 && newMonth > 2)) return;
 
-        grid.innerHTML = '';
+            currentYear = newYear;
+            currentMonth = newMonth;
 
-        const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
-        days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
+            if (currentStreamerId && STREAMER_DATA[currentStreamerId]) {
+                updateModalHeader(STREAMER_DATA[currentStreamerId], currentYear, currentMonth);
+            }
 
-        const firstDay = new Date(currentYear, currentMonth - 1, 1);
-        const lastDay = new Date(currentYear, currentMonth, 0);
-        
-        const startDay = firstDay.getDay(); 
-        const totalDays = lastDay.getDate();
+            renderCalendar();
+        }
 
-        const now = new Date();
-        const todayY = now.getFullYear();
-        const todayM = now.getMonth() + 1;
-        const todayD = now.getDate();
+        function renderCalendar() {
+            const title = document.getElementById('calTitle');
+            const grid = document.getElementById('calendarGrid');
+            const chartTitle = document.getElementById('chartTitle');
 
-        const data = STREAMER_DATA[currentStreamerId];
-        const vodMap = {}; 
-        
-        let openY = 0, openM = 0, openD = 0;
-        if (data && data.station_open_date) {
-            const dateParts = data.station_open_date.split(' ')[0].split('-');
-            if (dateParts.length === 3) {
-                openY = parseInt(dateParts[0]);
-                openM = parseInt(dateParts[1]);
-                openD = parseInt(dateParts[2]);
+            title.innerText = `${currentYear}. ${currentMonth}`;
+            chartTitle.innerText = `${currentYear}년 ${currentMonth}월 방송 시간`;
+
+            grid.innerHTML = '';
+
+            const days = ['주간', '일', '월', '화', '수', '목', '금', '토'];
+            days.forEach(d => grid.innerHTML += `<div class="cal-header">${d}</div>`);
+
+            const firstDay = new Date(currentYear, currentMonth - 1, 1);
+            const lastDay = new Date(currentYear, currentMonth, 0);
+
+            const startDay = firstDay.getDay();
+            const totalDays = lastDay.getDate();
+
+            const now = new Date();
+            const todayY = now.getFullYear();
+            const todayM = now.getMonth() + 1;
+            const todayD = now.getDate();
+
+            const data = STREAMER_DATA[currentStreamerId];
+            const vodMap = {};
+
+            let openY = 0, openM = 0, openD = 0;
+            if (data && data.station_open_date) {
+                const dateParts = data.station_open_date.split(' ')[0].split('-');
+                if (dateParts.length === 3) {
+                    openY = parseInt(dateParts[0]);
+                    openM = parseInt(dateParts[1]);
+                    openD = parseInt(dateParts[2]);
+                }
+            }
+
+            if (data && data.vods) {
+                data.vods.forEach(v => {
+                    if (!vodMap[v.date]) vodMap[v.date] = [];
+                    vodMap[v.date].push(v);
+                });
+            }
+
+            let currentWeekStats = { dayCount: 0, totalSec: 0 }; // count -> dayCount
+
+            for (let i = 0; i < startDay; i++) {
+                if (i === 0) grid.innerHTML += `<div class="cal-week-stat"></div>`;
+                grid.innerHTML += `<div class="cal-day empty"></div>`;
+            }
+
+            for (let d = 1; d <= totalDays; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const simpleDateStr = `${currentYear}${String(currentMonth).padStart(2, '0')}${String(d).padStart(2, '0')}`;
+                const vods = vodMap[dateStr];
+
+                if ((startDay + d - 1) % 7 === 0) {
+                    grid.innerHTML += `<div class="cal-week-stat"></div>`;
+                    currentWeekStats = { dayCount: 0, totalSec: 0 };
+                }
+
+                let content = `<div class="day-num">${d}</div>`;
+                let className = "cal-day";
+                if (currentYear === todayY && currentMonth === todayM && d === todayD) {
+                    className += " is-today";
+                }
+                if (currentYear === openY && currentMonth === openM && d === openD) {
+                    className += " station-open-day";
+                }
+
+                // 셀 클릭 시 링크 설정 (기본은 게시판 검색, VOD가 있으면 다시보기 검색)
+                let targetUrl = `https://www.sooplive.co.kr/station/${currentStreamerId}/board?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}`;
+
+                if (vods && vods.length > 0) {
+                    className += " has-vod";
+                    if (vods.length > 1) className += " multi-vod";
+
+                    // 다시보기(Review) 검색 링크로 교체
+                    targetUrl = `https://www.sooplive.co.kr/station/${currentStreamerId}/vod/review?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}&sort=reg_date_asc`;
+
+                    let totalSec = 0;
+                    let timeHtml = "";
+
+                    vods.forEach((v, index) => {
+                        totalSec += (v.duration_sec || 0);
+                        const parts = v.duration.split(':').map(Number);
+                        let tStr = "";
+                        if (parts.length === 3 && parts[0] > 0) tStr = `${parts[0]}시간`;
+                        else if (parts.length === 2) tStr = `${parts[0]}분`;
+                        else tStr = v.duration;
+                        timeHtml += `<div>${tStr}</div>`;
+                    });
+
+                    currentWeekStats.dayCount += 1; // VOD 개수가 아니라 방송한 '날짜' 수 카운트
+                    currentWeekStats.totalSec += totalSec;
+                    updateWeekStat(currentWeekStats);
+
+                    content += `<div class="day-time">${timeHtml}</div>`;
+                }
+
+                grid.innerHTML += `<div class="${className}" onclick="window.open('${targetUrl}', '_blank')">${content}</div>`;
+            }
+
+            renderCharts(data.vods);
+        }
+
+        function updateWeekStat(stats) {
+            const statsDivs = document.getElementsByClassName('cal-week-stat');
+            if (statsDivs.length > 0) {
+                const lastStat = statsDivs[statsDivs.length - 1];
+                // 평균 시간은 총 시간을 방송 일수로 나눔
+                const avg = stats.dayCount > 0 ? (stats.totalSec / 3600 / stats.dayCount).toFixed(1) : 0.0;
+                lastStat.innerHTML = `<span>${stats.dayCount}회</span><span style="color:#6ee7b7">평균 ${avg}h</span>`;
             }
         }
 
-        if(data && data.vods) {
-            data.vods.forEach(v => {
-                if (!vodMap[v.date]) vodMap[v.date] = [];
-                vodMap[v.date].push(v);
+        function renderCharts(vods) {
+            const labels = [];
+            const durationData = [];
+            const lastDayObj = new Date(currentYear, currentMonth, 0);
+            const totalDays = lastDayObj.getDate();
+
+            for (let d = 1; d <= totalDays; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                labels.push(String(d));
+                let dayDuration = 0;
+                if (vods) {
+                    vods.forEach(v => {
+                        if (v.date === dateStr) dayDuration += (v.duration_sec || 0) / 3600;
+                    });
+                }
+                durationData.push(dayDuration);
+            }
+
+            if (timeChartInstance) timeChartInstance.destroy();
+
+            const ctx1 = document.getElementById('timeChart').getContext('2d');
+            timeChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '방송 시간',
+                        data: durationData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        tension: 0.4,  /* 0.1에서 0.4로 변경하여 곡선형으로 만듦 */
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            displayColors: false,
+                            callbacks: {
+                                title: function (context) {
+                                    return context[0].label + '일';
+                                },
+                                label: function (context) {
+                                    return context.parsed.y.toFixed(1) + '시간';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#334155' },
+                            title: { display: true, text: '시간' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            title: { display: true, text: '일' }
+                        }
+                    }
+                }
             });
         }
 
-        let currentWeekStats = { dayCount: 0, totalSec: 0 }; // count -> dayCount
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = '#334155';
 
-        for (let i = 0; i < startDay; i++) {
-            if (i === 0) grid.innerHTML += `<div class="cal-week-stat"></div>`;
-            grid.innerHTML += `<div class="cal-day empty"></div>`;
-        }
-
-        for (let d = 1; d <= totalDays; d++) {
-            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const simpleDateStr = `${currentYear}${String(currentMonth).padStart(2, '0')}${String(d).padStart(2, '0')}`;
-            const vods = vodMap[dateStr];
-            
-            if ((startDay + d - 1) % 7 === 0) {
-                grid.innerHTML += `<div class="cal-week-stat"></div>`;
-                currentWeekStats = { dayCount: 0, totalSec: 0 };
-            }
-
-            let content = `<div class="day-num">${d}</div>`;
-            let className = "cal-day";
-            if (currentYear === todayY && currentMonth === todayM && d === todayD) {
-                className += " is-today";
-            }
-            if (currentYear === openY && currentMonth === openM && d === openD) {
-                className += " station-open-day";
-            }
-            
-            // 셀 클릭 시 링크 설정 (기본은 게시판 검색, VOD가 있으면 다시보기 검색)
-            let targetUrl = `https://www.sooplive.co.kr/station/${currentStreamerId}/board?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}`;
-            
-            if (vods && vods.length > 0) {
-                className += " has-vod";
-                if (vods.length > 1) className += " multi-vod";
-                
-                // 다시보기(Review) 검색 링크로 교체
-                targetUrl = `https://www.sooplive.co.kr/station/${currentStreamerId}/vod/review?period=directInput&startDate=${simpleDateStr}&endDate=${simpleDateStr}&sort=reg_date_asc`;
-
-                let totalSec = 0;
-                let timeHtml = ""; 
-
-                vods.forEach((v, index) => {
-                    totalSec += (v.duration_sec || 0);
-                    const parts = v.duration.split(':').map(Number);
-                    let tStr = "";
-                    if(parts.length===3 && parts[0]>0) tStr = `${parts[0]}시간`;
-                    else if(parts.length===2) tStr = `${parts[0]}분`;
-                    else tStr = v.duration;
-                    timeHtml += `<div>${tStr}</div>`;
-                });
-
-                currentWeekStats.dayCount += 1; // VOD 개수가 아니라 방송한 '날짜' 수 카운트
-                currentWeekStats.totalSec += totalSec;
-                updateWeekStat(currentWeekStats);
-
-                content += `<div class="day-time">${timeHtml}</div>`;
-            }
-
-            grid.innerHTML += `<div class="${className}" onclick="window.open('${targetUrl}', '_blank')">${content}</div>`;
-        }
-
-        renderCharts(data.vods);
-    }
-
-    function updateWeekStat(stats) {
-        const statsDivs = document.getElementsByClassName('cal-week-stat');
-        if (statsDivs.length > 0) {
-            const lastStat = statsDivs[statsDivs.length - 1];
-            // 평균 시간은 총 시간을 방송 일수로 나눔
-            const avg = stats.dayCount > 0 ? (stats.totalSec / 3600 / stats.dayCount).toFixed(1) : 0.0;
-            lastStat.innerHTML = `<span>${stats.dayCount}회</span><span style="color:#6ee7b7">평균 ${avg}h</span>`;
-        }
-    }
-
-    function renderCharts(vods) {
-        const labels = [];
-        const durationData = [];
-        const lastDayObj = new Date(currentYear, currentMonth, 0);
-        const totalDays = lastDayObj.getDate();
-        
-        for (let d = 1; d <= totalDays; d++) {
-            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            labels.push(String(d)); 
-            let dayDuration = 0;
-            if (vods) {
-                vods.forEach(v => {
-                    if (v.date === dateStr) dayDuration += (v.duration_sec || 0) / 3600; 
-                });
-            }
-            durationData.push(dayDuration);
-        }
-
-        if (timeChartInstance) timeChartInstance.destroy();
-
-        const ctx1 = document.getElementById('timeChart').getContext('2d');
-        timeChartInstance = new Chart(ctx1, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: '방송 시간',
-                    data: durationData,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    tension: 0.4,  /* 0.1에서 0.4로 변경하여 곡선형으로 만듦 */
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 0 },
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        displayColors: false,
-                        callbacks: {
-                            title: function(context) {
-                                return context[0].label + '일';
-                            },
-                            label: function(context) {
-                                return context.parsed.y.toFixed(1) + '시간'; 
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { color: '#334155' },
-                        title: { display: true, text: '시간' }
-                    },
-                    x: { 
-                        grid: { display: false },
-                        title: { display: true, text: '일' }
-                    }
-                }
-            }
-        });
-    }
-    
-    Chart.defaults.color = '#94a3b8';
-    Chart.defaults.borderColor = '#334155';
-
-    checkPassword();
-</script>
+        checkPassword();
+    </script>
 </body>
+
 </html>
