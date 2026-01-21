@@ -617,90 +617,12 @@
             color: var(--text-main);
             font-weight: bold;
         }
-
-        /* Password Overlay */
-        .password-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0f172a;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .pw-container {
-            background: var(--card-bg);
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            border: 1px solid #334155;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-        }
-
-        .pw-input {
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: white;
-            padding: 15px;
-            font-size: 1.2rem;
-            border-radius: 10px;
-            margin-top: 20px;
-            width: 200px;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .pw-input:focus {
-            border-color: var(--accent);
-        }
-
-        .pw-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin-top: 15px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            cursor: pointer;
-            font-weight: bold;
-            transition: opacity 0.2s;
-        }
-
-        .pw-btn:hover {
-            opacity: 0.9;
-        }
-
-        .pw-msg {
-            margin-top: 15px;
-            color: #ef4444;
-            font-size: 0.9rem;
-            min-height: 20px;
-        }
     </style>
 </head>
 
 <body>
 
-    <!-- Password Overlay -->
-    <div id="passwordOverlay" class="password-overlay" style="display:none">
-        <div class="pw-container">
-            <h2 style="margin:0 0 10px 0;">🔒 보안 접속</h2>
-            <p style="color:var(--text-sub)">연습생 현황판에 접근하려면<br>비밀번호를 입력하세요.</p>
-            <input type="password" id="pwInput" class="pw-input" placeholder="비밀번호"
-                onkeyup="if(event.key==='Enter') submitPassword()">
-            <button class="pw-btn" onclick="submitPassword()">입장하기</button>
-            <div id="pwMsg" class="pw-msg"></div>
-        </div>
-    </div>
+
 
     <div class="container">
         <h1>플랜비 지망생 현황판</h1>
@@ -778,28 +700,7 @@
 
     <script>
         const CONFIG = {
-            ids: [
-                'bluejin0129,178387', // 지오
-                'gome02,178469', // 밤문
-                'likethis1125,178530', // 도페
-                'whitesora,178972', //백소라
-                'zzeogoo,179313', // 햄쩌구
-                'doheezzan,179888', //도히짠
-                'reaper7862,180188', //rp7
-                'dlsvhwk00,180222', // 싴련
-                'seri1100,181092', // 몽세리
-                'whtndus0830,181159', // 쪼아나
-                'marihema,182596', //마리히
-                'somnnya,182631', //김솜냐
-                'runna11,184323', //룬나
-                'ninfantaem,184359', //달달햇
-                'nsmfqha2057,184775', //윤세아
-                'hwanidayo,184808', //화니다요
-                'haruniong,186110', //하루뇽
-                'moonngnung,187390', //모서리
-                'r1s1n9star,187448', //샛벼리
-            ]
-
+            ids: []
         };
 
         const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
@@ -818,15 +719,9 @@
         document.querySelector('.close').onclick = () => MODAL.style.display = "none";
         window.onclick = (e) => { if (e.target == MODAL) MODAL.style.display = "none"; }
 
-        // 비밀번호 체크 로직
-        function checkPassword() {
-            const savedPw = localStorage.getItem('site_password');
-            if (!savedPw) {
-                document.getElementById('passwordOverlay').style.display = 'flex';
-            } else {
-                // 비밀번호가 있으면 초기화 진행
-                init();
-            }
+        // 초기화 함수 실행
+        function startApp() {
+            init();
         }
 
         async function submitPassword() {
@@ -912,12 +807,8 @@
             }
 
             try {
-                const savedPw = localStorage.getItem('site_password') || '';
-
-                // mode 파라미터 추가 & 헤더에 비밀번호 추가
-                const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`, {
-                    headers: { 'X-Access-Password': savedPw }
-                });
+                // mode 파라미터 추가
+                const fetchReq = fetch(`/api/bj_info?id=${id}&mode=${mode}`);
 
                 // Basic 모드일 때 최소 로딩 시간 보장 (UX)
                 if (mode === 'basic') {
@@ -930,12 +821,7 @@
                 // 응답 내용을 텍스트로 먼저 확인
                 const text = await response.text();
 
-                if (response.status === 401) {
-                    localStorage.removeItem('site_password');
-                    document.getElementById('passwordOverlay').style.display = 'flex';
-                    document.getElementById('pwMsg').innerText = "비밀번호가 올바르지 않거나 만료되었습니다.";
-                    throw new Error('Unauthorized');
-                }
+
 
                 if (!response.ok) throw new Error(`Server Error: ${response.status}`);
                 if (!text) throw new Error('Empty Response');
@@ -948,11 +834,7 @@
                     throw new Error('Invalid JSON');
                 }
 
-                // 보안 모드 여부 체크 (디버깅용)
-                if (newData.auth_required === false && localStorage.getItem('site_password')) {
-                    // 서버가 공개 모드인데 비밀번호가 저장돼있다면 굳이 삭제할 필요는 없지만 로그 남김
-                    console.log('Server is in public mode.');
-                }
+
 
                 // 데이터 병합 (기존 데이터를 유지하면서 최신 데이터로 덮어쓰기)
                 STREAMER_DATA[id] = {
@@ -1360,7 +1242,23 @@
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.borderColor = '#334155';
 
-        checkPassword();
+        // 설정 파일 로드 후 시작
+        fetch('./ids.json')
+            .then(response => response.text()) // 텍스트로 먼저 읽기
+            .then(text => {
+                // 주석(//) 제거
+                // 정규식 설명: //로 시작해서 줄바꿈 이전까지의 모든 문자를 공백으로 치환
+                const jsonText = text.replace(/\/\/.*$/gm, '');
+                return JSON.parse(jsonText);
+            })
+            .then(data => {
+                CONFIG.ids = data;
+                startApp();
+            })
+            .catch(error => {
+                console.error('설정 파일 로드 실패:', error);
+                alert('설정 정보(ids.json)를 불러오는데 실패했습니다.');
+            });
     </script>
 </body>
 
