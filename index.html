@@ -744,53 +744,16 @@
             init();
         }
 
-        async function submitPassword() {
-            const input = document.getElementById('pwInput');
-            const msg = document.getElementById('pwMsg');
-            const pw = input.value.trim();
 
-            if (!pw) {
-                msg.innerText = "비밀번호를 입력해주세요.";
-                return;
-            }
-
-            // 임시 저장 후 테스트 요청
-            localStorage.setItem('site_password', pw);
-            msg.innerText = "확인 중...";
-
-            try {
-                // 테스트 요청
-                const testId = CONFIG.ids[0].split(',')[0];
-                const res = await fetch(`/api/bj_info?id=${testId}&mode=basic`, {
-                    headers: { 'X-Access-Password': pw }
-                });
-
-                if (res.status === 401) {
-                    msg.innerText = "비밀번호가 틀렸습니다.";
-                    localStorage.removeItem('site_password');
-                    input.value = '';
-                    input.focus();
-                } else if (res.ok) {
-                    // 성공
-                    document.getElementById('passwordOverlay').style.display = 'none';
-                    init();
-                } else {
-                    const txt = await res.text();
-                    console.error(txt);
-                    msg.innerText = `서버 오류 (${res.status})`;
-                }
-            } catch (e) {
-                console.error(e);
-                msg.innerText = "서버에 연결할 수 없습니다.";
-            }
-        }
 
         async function init() {
             const listContainer = document.getElementById('streamer-list');
             listContainer.innerHTML = '';
 
+            console.log('Loaded Configuration:', CONFIG.ids);
+
             CONFIG.ids.forEach(entry => {
-                const [id, postId] = entry.split(',');
+                const [id, postId] = entry.split(',').map(s => s.trim()); // 공백 제거 추가
                 // 초기 데이터에 게시글 번호 저장
                 STREAMER_DATA[id] = { postId: postId || '0' };
 
