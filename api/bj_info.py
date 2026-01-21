@@ -77,7 +77,8 @@ class handler(BaseHTTPRequestHandler):
                     'profile_img': profile_img,
                     'is_live': is_live,
                     'fan_cnt': fan_cnt,
-                    'auth_required': bool(server_password), # 보안 모드 여부 전달
+                    'fan_cnt': fan_cnt,
+                    'auth_required': False, # 보안 모드 해제됨
                     # basic 모드에서는 vods나 기타 무거운 정보 제외
                 }
                 self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
