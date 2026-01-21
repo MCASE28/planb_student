@@ -700,7 +700,27 @@
 
     <script>
         const CONFIG = {
-            ids: []
+            ids: [
+                'bluejin0129,178387', // 지오
+                'gome02,178469', // 밤문
+                'likethis1125,178530', // 도페
+                'whitesora,178972', //백소라
+                'zzeogoo,179313', // 햄쩌구
+                'doheezzan,179888', //도히짠
+                'reaper7862,180188', //rp7
+                'dlsvhwk00,180222', // 싴련
+                'seri1100,181092', // 몽세리
+                'whtndus0830,181159', // 쪼아나
+                'marihema,182596', //마리히
+                'somnnya,182631', //김솜냐
+                'runna11,184323', //룬나
+                'ninfantaem,184359', //달달햇
+                'nsmfqha2057,184775', //윤세아
+                'hwanidayo,184808', //화니다요
+                'haruniong,186110', //하루뇽
+                'moonngnung,187390', //모서리
+                'r1s1n9star,187448' //샛벼리
+            ]
         };
 
         const DEFAULT_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' fill='%2394a3b8' dy='.3em' text-anchor='middle'%3ENo IMG%3C/text%3E%3C/svg%3E";
@@ -1242,23 +1262,8 @@
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.borderColor = '#334155';
 
-        // 설정 파일 로드 후 시작
-        fetch('./ids.json')
-            .then(response => response.text()) // 텍스트로 먼저 읽기
-            .then(text => {
-                // 주석(//) 제거
-                // 정규식 설명: //로 시작해서 줄바꿈 이전까지의 모든 문자를 공백으로 치환
-                const jsonText = text.replace(/\/\/.*$/gm, '');
-                return JSON.parse(jsonText);
-            })
-            .then(data => {
-                CONFIG.ids = data;
-                startApp();
-            })
-            .catch(error => {
-                console.error('설정 파일 로드 실패:', error);
-                alert('설정 정보(ids.json)를 불러오는데 실패했습니다.');
-            });
+        // 설정 파일 없이 즉시 시작
+        startApp();
     </script>
 </body>
 
